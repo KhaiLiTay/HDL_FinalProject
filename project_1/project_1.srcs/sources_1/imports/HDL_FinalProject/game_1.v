@@ -1,5 +1,5 @@
-/*æ²’æœ‰ä»€éº¼å¤§å•é¡Œ
-TODOï¼šéš¨æ©Ÿç”Ÿæˆå¤šå€‹æ•µäºº*/
+/*›]ÓĞÊ²üN´ó†–î}
+TODO£ºëS™CÉú³É¶à‚€”³ÈË*/
 module game_top(
     input wire clk,
     input wire rst,
@@ -64,20 +64,20 @@ PmodJSTK jstk_inst(
 assign sndData = {8'b100000, {SW[1], SW[2]}};
 
 // Extract joystick components
-// å¾PmodJSTKæ–‡æ¡£ä¸­å¯ä»¥çœ‹åˆ°ï¼Œæ–æ†æ•°æ®æ ¼å¼å¦‚ä¸‹ï¼š
+// ÄPmodJSTKÎÄµµÖĞ¿ÉÒÔ¿´µ½£¬“u¸ËÊı¾İ¸ñÊ½ÈçÏÂ£º
 wire [9:0] joystick_x = {joystick_data[9:8], joystick_data[23:16]};
 wire [9:0] joystick_y = {joystick_data[25:24], joystick_data[39:32]};
-// å¾ç¤ºä¾‹ä»£ç¢¼å¯çœ‹åˆ°æŒ‰éˆ•çš„è™•ç†æ–¹å¼
+// ÄÊ¾Àı´ú´a¿É¿´µ½°´âoµÄÌÀí·½Ê½
 wire [2:0] joystick_button = {joystick_data[1], joystick_data[2], joystick_data[0]};
 
-// Binary to BCD è½‰æ›å™¨å¯¦ä¾‹
+// Binary to BCD ŞD“QÆ÷ŒÀı
 wire [15:0] x_bcd, y_bcd;
 wire x_convert_done, y_convert_done;
 
 Binary_To_BCD x_converter(
     .CLK(clk),
     .RST(rst),
-    .START(1'b1),        // æŒçºŒè½‰æ›
+    .START(1'b1),        // ³ÖÀmŞD“Q
     .BIN(joystick_x),
     .BCDOUT(x_bcd)
 );
@@ -85,24 +85,22 @@ Binary_To_BCD x_converter(
 Binary_To_BCD y_converter(
     .CLK(clk),
     .RST(rst),
-    .START(1'b1),        // æŒçºŒè½‰æ›
+    .START(1'b1),        // ³ÖÀmŞD“Q
     .BIN(joystick_y),
     .BCDOUT(y_bcd)
 );
 
-// é€™å…©å€‹ wire æ²’æœ‰äº‹å…ˆå®£å‘Š
+// ß@ƒÉ‚€ wire ›]ÓĞÊÂÏÈĞû¸æ
 wire [15:0] joystick_x_final;  
 wire [15:0] joystick_y_final;
-// æ‡‰è©²æ”¹ç‚ºåˆä½µæ•¸å­—çš„å¯«æ³•ï¼Œå°‡BCDå€¼è½‰å›äºŒé€²åˆ¶ï¼š
+// ‘ªÔ“¸ÄéºÏã”µ×ÖµÄŒ‘·¨£¬Œ¢BCDÖµŞD»Ø¶şßMÖÆ£º
 assign joystick_x_final = (x_bcd[15:12] * 1000) + (x_bcd[11:8] * 100) + (x_bcd[7:4] * 10) + x_bcd[3:0];
 assign joystick_y_final = (y_bcd[15:12] * 1000) + (y_bcd[11:8] * 100) + (y_bcd[7:4] * 10) + y_bcd[3:0];
 
-// Score register
-reg [7:0] score;
 
-wire [15:0] nums;
-assign nums = {4'hF, 4'hF, score[7:4], score[3:0]};
-SevenSegment m1(.display(display), .digit(digit), .nums(nums), .rst(rst), .clk(clk));
+wire joystick_num;
+assign joystick_num = (SW[0] == 1'b1) ? {x_bcd} : {y_bcd};
+SevenSegment m1(.display(display), .digit(digit), .nums(joystick_num), .rst(rst), .clk(clk));
 
 // VGA controller signals
 wire [9:0] h_cnt;
@@ -128,33 +126,18 @@ reg signed [9:0] bullet_dx;
 reg signed [9:0] bullet_dy;
 
 // Enemy position and state
-
-/*reg [9:0] enemy_x;
+reg [9:0] enemy_x;
 reg [9:0] enemy_y;
-reg enemy_active;*/
+reg enemy_active;
 reg bullet_hit;
-// æœ€å¤§æ•Œäººæ•°
-parameter MAX_ENEMIES = 10;
 
-// æ•Œäººä½ç½®å’ŒçŠ¶æ€
-reg [9:0] enemy_x[MAX_ENEMIES - 1:0];
-reg [9:0] enemy_y[MAX_ENEMIES - 1:0];
-reg enemy_active[MAX_ENEMIES - 1:0];
-
-// éšæœºæ•°ç”Ÿæˆå™¨ï¼ˆä¼ªéšæœºæ•°ï¼‰
-reg [9:0] random_seed;
-
-
-reg signed [15:0] dx, dy; // å…è¨±è² å€¼
+reg signed [15:0] dx, dy; // ÔÊÔSØ“Öµ
 reg [15:0] magnitude;
 
-parameter CENTER_X = 512;  // æ–æ†ä¸­å¿ƒXåº§æ¨™
-parameter CENTER_Y = 512;  // æ–æ†ä¸­å¿ƒYåº§æ¨™
-parameter DEAD_ZONE = 100; // æ­»å€ç¯„åœ
-parameter MAX_BULLET_SPEED = 5; // å­å½ˆæœ€å¤§é€Ÿåº¦
-
-integer i;
-reg [9:0] LFSR;
+parameter CENTER_X = 512;  // “u¸ËÖĞĞÄX×ù˜Ë
+parameter CENTER_Y = 512;  // “u¸ËÖĞĞÄY×ù˜Ë
+parameter DEAD_ZONE = 100; // ËÀ…^¹ ‡ú
+parameter MAX_BULLET_SPEED = 5; // ×Ó—×î´óËÙ¶È
 
 // Keyboard interface
 wire [511:0] key_down;
@@ -187,16 +170,9 @@ initial begin
     bullet_active = 0;
     bullet_dx = 0;
     bullet_dy = -1; // Default upward
-    /*enemy_x = 100; // Initial position of enemy
+    enemy_x = 100; // Initial position of enemy
     enemy_y = 100;
-    enemy_active = 1;*/
-    //random_seed = 10'b0101010101; // åˆå§‹éšæœºç§å­
-    for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
-        enemy_x[i] = 0;
-        enemy_y[i] = 0;
-        enemy_active[i] = 0;
-    end
-    score = 0; // Initial score is 0
+    enemy_active = 1;
 end
 
 // Update player position based on joystick input, WASD keys, or control mode
@@ -246,19 +222,15 @@ always @(posedge clk_bullet or posedge rst) begin
         bullet_y <= 0;
         bullet_dx <= 0;
         bullet_dy <= 0;
-        /*enemy_active <= 1;
+        enemy_active <= 1;
         enemy_x <= 100;
-        enemy_y <= 100;*/
+        enemy_y <= 100;
         bullet_hit <= 0;
-        for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
-            enemy_active[i] <= 0;
-        end
-        score <= 0; // Reset score
     end else if (joystick_button[0] && !bullet_active && !shift_down) begin
         // Shift not pressed: control bullet direction
         dx = $signed(joystick_x_final) - $signed(CENTER_X);
         dy = $signed(joystick_y_final) - $signed(CENTER_Y);
-        magnitude = (dx * dx + dy * dy) >> 8; // é™¤ä»¥256ä½œç‚ºç¸®æ—ºå› å­
+        magnitude = (dx * dx + dy * dy) >> 8; // ³ıÒÔ256×÷é¿sÍúÒò×Ó
         if (magnitude > DEAD_ZONE * DEAD_ZONE >> 8) begin
             bullet_active <= 1;
             bullet_x <= player_x + 10;
@@ -282,59 +254,15 @@ always @(posedge clk_bullet or posedge rst) begin
         end else begin
             bullet_active <= 0;
         end
-
-        // Enemy hit detection
-        /*if (enemy_active &&
+        if (enemy_active &&
             bullet_x + 5 >= enemy_x && bullet_x < enemy_x + 20 &&
             bullet_y + 10 >= enemy_y && bullet_y < enemy_y + 20) begin
             enemy_active <= 0; // Enemy disappears when hit
             bullet_active <= 0; // Reset bullet
             bullet_hit <= 1;
-        end*/
-        for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
-            if (enemy_active[i] &&
-                bullet_x + 5 >= enemy_x[i] && bullet_x < enemy_x[i] + 20 &&
-                bullet_y + 10 >= enemy_y[i] && bullet_y < enemy_y[i] + 20) begin
-                enemy_active[i] <= 0; // æ•Œäººæ¶ˆå¤±
-                bullet_active <= 0; // å­å¼¹æ¶ˆå¤±
-                bullet_hit <= 1;
-                if (score <= 8'd99) begin  // ç¢ºä¿åˆ†æ•¸ä¸æœƒè¶…é99
-                    score <= score + 1; // æ¯æ¬¡å¾—åˆ†åŠ 10
-                end
-            end
-        end
-    end
-    else begin
-        for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
-            if (!enemy_active[i]) begin
-                random_seed <= LFSR;
-                enemy_x[i] <= random_seed % 640; // éšæœºxåæ ‡
-                enemy_y[i] <= random_seed % 480; // éšæœºyåæ ‡
-                enemy_active[i] <= 1;
-                //break; // æ¯æ¬¡åªç”Ÿæˆä¸€ä¸ªæ•Œäºº
-            end
         end
     end
 end
-
-always @(posedge clk_1Hz or posedge rst) begin
-        if (rst) begin
-            LFSR <= 10'b1010_0000_00; 
-        end else begin
-            LFSR[9] <= LFSR[1];
-            LFSR[8] <= LFSR[4];
-            LFSR[7] <= LFSR[8] ^ LFSR[1];
-            LFSR[6] <= LFSR[7] ^ LFSR[1];
-            LFSR[5] <= LFSR[6];
-            LFSR[4] <= LFSR[5] ^ LFSR[1];
-            LFSR[3] <= LFSR[4];
-            LFSR[2] <= LFSR[3];
-            LFSR[1] <= LFSR[2];
-            LFSR[0] <= LFSR[9];
-        end
-    end
-
-
 
 // VGA output for player, bullet, and enemy
 always @(*) begin
@@ -347,18 +275,15 @@ always @(*) begin
             vgaRed = 4'h0;
             vgaGreen = 4'hF; // Bullet block in green
             vgaBlue = 4'h0;
-        end /*else if (enemy_active && v_cnt >= enemy_y && v_cnt < enemy_y + 20 && h_cnt >= enemy_x && h_cnt < enemy_x + 20) begin
+        end else if (enemy_active && v_cnt >= enemy_y && v_cnt < enemy_y + 20 && h_cnt >= enemy_x && h_cnt < enemy_x + 20) begin
             vgaRed = 4'h0; // Enemy block in blue
             vgaGreen = 4'h0;
             vgaBlue = 4'hF;
-        end*/
-        else begin
-            for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
-                if (enemy_active[i] && v_cnt >= enemy_y[i] && v_cnt < enemy_y[i] + 20 && h_cnt >= enemy_x[i] && h_cnt < enemy_x[i] + 20) begin
-                    vgaBlue = 4'hF; // Enemy block in blue
-                end
-            end
-        end 
+        end else begin
+            vgaRed = 4'h0;
+            vgaGreen = 4'h0;
+            vgaBlue = 4'h0;
+        end
     end else begin
         vgaRed = 4'h0;
         vgaGreen = 4'h0;

@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenRun Id="impl_1" LaunchPart="xc7a35tcpg236-1" LaunchTime="1734167632">
+  <File Type="BITSTR-BMM" Name="game_top_bd.bmm"/>
+  <File Type="OPT-METHODOLOGY-DRC" Name="game_top_methodology_drc_opted.rpt"/>
+  <File Type="INIT-TIMING" Name="game_top_timing_summary_init.rpt"/>
+  <File Type="ROUTE-PWR" Name="game_top_power_routed.rpt"/>
+  <File Type="PA-TCL" Name="game_top.tcl"/>
+  <File Type="OPT-TIMING" Name="game_top_timing_summary_opted.rpt"/>
+  <File Type="OPT-DCP" Name="game_top_opt.dcp"/>
+  <File Type="ROUTE-PWR-SUM" Name="game_top_power_summary_routed.pb"/>
+  <File Type="REPORTS-TCL" Name="game_top_reports.tcl"/>
+  <File Type="OPT-DRC" Name="game_top_drc_opted.rpt"/>
+  <File Type="OPT-HWDEF" Name="game_top.hwdef"/>
+  <File Type="PWROPT-DCP" Name="game_top_pwropt.dcp"/>
+  <File Type="PWROPT-DRC" Name="game_top_drc_pwropted.rpt"/>
+  <File Type="PWROPT-TIMING" Name="game_top_timing_summary_pwropted.rpt"/>
+  <File Type="PLACE-DCP" Name="game_top_placed.dcp"/>
+  <File Type="PLACE-IO" Name="game_top_io_placed.rpt"/>
+  <File Type="PLACE-CLK" Name="game_top_clock_utilization_placed.rpt"/>
+  <File Type="PLACE-UTIL" Name="game_top_utilization_placed.rpt"/>
+  <File Type="PLACE-UTIL-PB" Name="game_top_utilization_placed.pb"/>
+  <File Type="PLACE-CTRL" Name="game_top_control_sets_placed.rpt"/>
+  <File Type="PLACE-SIMILARITY" Name="game_top_incremental_reuse_placed.rpt"/>
+  <File Type="PLACE-PRE-SIMILARITY" Name="game_top_incremental_reuse_pre_placed.rpt"/>
+  <File Type="PLACE-TIMING" Name="game_top_timing_summary_placed.rpt"/>
+  <File Type="POSTPLACE-PWROPT-DCP" Name="game_top_postplace_pwropt.dcp"/>
+  <File Type="BG-BIN" Name="game_top.bin"/>
+  <File Type="POSTPLACE-PWROPT-TIMING" Name="game_top_timing_summary_postplace_pwropted.rpt"/>
+  <File Type="PHYSOPT-DCP" Name="game_top_physopt.dcp"/>
+  <File Type="PHYSOPT-DRC" Name="game_top_drc_physopted.rpt"/>
+  <File Type="BITSTR-MSK" Name="game_top.msk"/>
+  <File Type="PHYSOPT-TIMING" Name="game_top_timing_summary_physopted.rpt"/>
+  <File Type="ROUTE-ERROR-DCP" Name="game_top_routed_error.dcp"/>
+  <File Type="ROUTE-DCP" Name="game_top_routed.dcp"/>
+  <File Type="ROUTE-BLACKBOX-DCP" Name="game_top_routed_bb.dcp"/>
+  <File Type="ROUTE-DRC" Name="game_top_drc_routed.rpt"/>
+  <File Type="ROUTE-DRC-PB" Name="game_top_drc_routed.pb"/>
+  <File Type="ROUTE-DRC-RPX" Name="game_top_drc_routed.rpx"/>
+  <File Type="BITSTR-MMI" Name="game_top.mmi"/>
+  <File Type="ROUTE-METHODOLOGY-DRC" Name="game_top_methodology_drc_routed.rpt"/>
+  <File Type="ROUTE-METHODOLOGY-DRC-RPX" Name="game_top_methodology_drc_routed.rpx"/>
+  <File Type="ROUTE-METHODOLOGY-DRC-PB" Name="game_top_methodology_drc_routed.pb"/>
+  <File Type="ROUTE-PWR-RPX" Name="game_top_power_routed.rpx"/>
+  <File Type="ROUTE-STATUS" Name="game_top_route_status.rpt"/>
+  <File Type="ROUTE-STATUS-PB" Name="game_top_route_status.pb"/>
+  <File Type="ROUTE-TIMINGSUMMARY" Name="game_top_timing_summary_routed.rpt"/>
+  <File Type="ROUTE-TIMING-PB" Name="game_top_timing_summary_routed.pb"/>
+  <File Type="ROUTE-TIMING-RPX" Name="game_top_timing_summary_routed.rpx"/>
+  <File Type="ROUTE-SIMILARITY" Name="game_top_incremental_reuse_routed.rpt"/>
+  <File Type="ROUTE-CLK" Name="game_top_clock_utilization_routed.rpt"/>
+  <File Type="ROUTE-BUS-SKEW" Name="game_top_bus_skew_routed.rpt"/>
+  <File Type="ROUTE-BUS-SKEW-PB" Name="game_top_bus_skew_routed.pb"/>
+  <File Type="ROUTE-BUS-SKEW-RPX" Name="game_top_bus_skew_routed.rpx"/>
+  <File Type="POSTROUTE-PHYSOPT-DCP" Name="game_top_postroute_physopt.dcp"/>
+  <File Type="POSTROUTE-PHYSOPT-BLACKBOX-DCP" Name="game_top_postroute_physopt_bb.dcp"/>
+  <File Type="POSTROUTE-PHYSOPT-TIMING" Name="game_top_timing_summary_postroute_physopted.rpt"/>
+  <File Type="POSTROUTE-PHYSOPT-TIMING-PB" Name="game_top_timing_summary_postroute_physopted.pb"/>
+  <File Type="POSTROUTE-PHYSOPT-TIMING-RPX" Name="game_top_timing_summary_postroute_physopted.rpx"/>
+  <File Type="POSTROUTE-PHYSOPT-BUS-SKEW" Name="game_top_bus_skew_postroute_physopted.rpt"/>
+  <File Type="POSTROUTE-PHYSOPT-BUS-SKEW-PB" Name="game_top_bus_skew_postroute_physopted.pb"/>
+  <File Type="BG-BIT" Name="game_top.bit"/>
+  <File Type="POSTROUTE-PHYSOPT-BUS-SKEW-RPX" Name="game_top_bus_skew_postroute_physopted.rpx"/>
+  <File Type="BITSTR-RBT" Name="game_top.rbt"/>
+  <File Type="BITSTR-NKY" Name="game_top.nky"/>
+  <File Type="PDI-FILE" Name="game_top.pdi"/>
+  <File Type="RCFI_FILE" Name="game_top.rcfi"/>
+  <File Type="CFI_FILE" Name="game_top.cfi"/>
+  <File Type="RNPI_FILE" Name="game_top.rnpi"/>
+  <File Type="NPI_FILE" Name="game_top.npi"/>
+  <File Type="RBD_FILE" Name="game_top.rbd"/>
+  <File Type="BITSTR-LTX" Name="debug_nets.ltx"/>
+  <File Type="BITSTR-LTX" Name="game_top.ltx"/>
+  <File Type="BITSTR-SYSDEF" Name="game_top.sysdef"/>
+  <File Type="BG-BGN" Name="game_top.bgn"/>
+  <File Type="BG-DRC" Name="game_top.drc"/>
+  <File Type="RDI-RDI" Name="game_top.vdi"/>
+  <File Type="WBT-USG" Name="usage_statistics_webtalk.html"/>
+  <FileSet Name="sources" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1" RelGenDir="$PSRCDIR/sources_1">
+    <Filter Type="Srcs"/>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/Binary_To_BCD.v">
+      <FileInfo>
+        <Attr Name="ImportPath" Val="$PPRDIR/../Binary_To_BCD.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/ClkDiv_66_67kHz.v">
+      <FileInfo>
+        <Attr Name="ImportPath" Val="$PPRDIR/../ClkDiv_66_67kHz.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/KeyboardDecoder.v">
+      <FileInfo>
+        <Attr Name="ImportPath" Val="$PPRDIR/../KeyboardDecoder.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/PmodJSTK.v">
+      <FileInfo>
+        <Attr Name="ImportPath" Val="$PPRDIR/../PmodJSTK.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/SPImode0.v">
+      <FileInfo>
+        <Attr Name="ImportPath" Val="$PPRDIR/../SPImode0.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/SevenSegment.v">
+      <FileInfo>
+        <Attr Name="ImportPath" Val="$PPRDIR/../SevenSegment.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/clock_divider.v">
+      <FileInfo>
+        <Attr Name="ImportPath" Val="$PPRDIR/../clock_divider.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/one_pulse.v">
+      <FileInfo>
+        <Attr Name="ImportPath" Val="$PPRDIR/../one_pulse.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/spiCtrl.v">
+      <FileInfo>
+        <Attr Name="ImportPath" Val="$PPRDIR/../spiCtrl.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/vga.v">
+      <FileInfo>
+        <Attr Name="ImportPath" Val="$PPRDIR/../vga.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/game_1.v">
+      <FileInfo>
+        <Attr Name="ImportPath" Val="$PPRDIR/../game_1.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/game.v">
+      <FileInfo>
+        <Attr Name="AutoDisabled" Val="1"/>
+        <Attr Name="ImportPath" Val="$PPRDIR/../game.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/KeyboardCtrl.v">
+      <FileInfo>
+        <Attr Name="AutoDisabled" Val="1"/>
+        <Attr Name="ImportPath" Val="$PPRDIR/../KeyboardCtrl.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/PmodJSTK_Demo.v">
+      <FileInfo>
+        <Attr Name="AutoDisabled" Val="1"/>
+        <Attr Name="ImportPath" Val="$PPRDIR/../PmodJSTK_Demo.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/Ps2Interface.v">
+      <FileInfo>
+        <Attr Name="AutoDisabled" Val="1"/>
+        <Attr Name="ImportPath" Val="$PPRDIR/../Ps2Interface.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/debounce.v">
+      <FileInfo>
+        <Attr Name="AutoDisabled" Val="1"/>
+        <Attr Name="ImportPath" Val="$PPRDIR/../debounce.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/mem_addr_gen.v">
+      <FileInfo>
+        <Attr Name="AutoDisabled" Val="1"/>
+        <Attr Name="ImportPath" Val="$PPRDIR/../mem_addr_gen.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/music_example.v">
+      <FileInfo>
+        <Attr Name="AutoDisabled" Val="1"/>
+        <Attr Name="ImportPath" Val="$PPRDIR/../music_example.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/note_gen.v">
+      <FileInfo>
+        <Attr Name="AutoDisabled" Val="1"/>
+        <Attr Name="ImportPath" Val="$PPRDIR/../note_gen.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/player_control.v">
+      <FileInfo>
+        <Attr Name="AutoDisabled" Val="1"/>
+        <Attr Name="ImportPath" Val="$PPRDIR/../player_control.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/speaker_control.v">
+      <FileInfo>
+        <Attr Name="AutoDisabled" Val="1"/>
+        <Attr Name="ImportPath" Val="$PPRDIR/../speaker_control.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/top.v">
+      <FileInfo>
+        <Attr Name="AutoDisabled" Val="1"/>
+        <Attr Name="ImportPath" Val="$PPRDIR/../top.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <File Path="$PSRCDIR/sources_1/imports/HDL_FinalProject/main.v">
+      <FileInfo>
+        <Attr Name="AutoDisabled" Val="1"/>
+        <Attr Name="ImportPath" Val="$PPRDIR/../main.v"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+        <Attr Name="UsedIn" Val="simulation"/>
+      </FileInfo>
+    </File>
+    <Config>
+      <Option Name="DesignMode" Val="RTL"/>
+      <Option Name="TopModule" Val="game_top"/>
+      <Option Name="TopAutoSet" Val="TRUE"/>
+    </Config>
+  </FileSet>
+  <FileSet Name="constrs_in" Type="Constrs" RelSrcDir="$PSRCDIR/constrs_1">
+    <Filter Type="Constrs"/>
+    <File Path="$PSRCDIR/constrs_1/imports/HDL_FinalProject/Basys3_Master2.xdc">
+      <FileInfo>
+        <Attr Name="ImportPath" Val="$PPRDIR/../Basys3_Master2.xdc"/>
+        <Attr Name="ImportTime" Val="1734154205"/>
+        <Attr Name="UsedIn" Val="synthesis"/>
+        <Attr Name="UsedIn" Val="implementation"/>
+      </FileInfo>
+    </File>
+    <Config>
+      <Option Name="ConstrsType" Val="XDC"/>
+    </Config>
+  </FileSet>
+  <FileSet Name="utils" Type="Utils" RelSrcDir="$PSRCDIR/utils_1">
+    <Filter Type="Utils"/>
+    <Config>
+      <Option Name="TopAutoSet" Val="TRUE"/>
+    </Config>
+  </FileSet>
+  <Strategy Version="1" Minor="2">
+    <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2019"/>
+    <Step Id="init_design"/>
+    <Step Id="opt_design"/>
+    <Step Id="power_opt_design"/>
+    <Step Id="place_design"/>
+    <Step Id="post_place_power_opt_design"/>
+    <Step Id="phys_opt_design" EnableStepBool="1"/>
+    <Step Id="route_design"/>
+    <Step Id="post_route_phys_opt_design"/>
+    <Step Id="write_bitstream"/>
+  </Strategy>
+  <BlockFileSet Type="BlockSrcs" Name="KeyboardCtrl_0"/>
+</GenRun>
