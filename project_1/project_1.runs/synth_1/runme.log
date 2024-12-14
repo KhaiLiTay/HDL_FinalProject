@@ -1,0 +1,438 @@
+
+*** Running vivado
+    with args -log game_top.vds -m64 -product Vivado -mode batch -messageDb vivado.pb -notrace -source game_top.tcl
+
+
+
+****** Vivado v2020.2 (64-bit)
+  **** SW Build 3064766 on Wed Nov 18 09:12:45 MST 2020
+  **** IP Build 3064653 on Wed Nov 18 14:17:31 MST 2020
+    ** Copyright 1986-2020 Xilinx, Inc. All Rights Reserved.
+
+source game_top.tcl -notrace
+INFO: [IP_Flow 19-234] Refreshing IP repositories
+INFO: [IP_Flow 19-1700] Loaded user IP repository 'd:/logic_lab/HDL_FinalProject/ip'.
+INFO: [IP_Flow 19-2313] Loaded Vivado IP repository 'D:/Xilinx/Vivado/2020.2/data/ip'.
+Command: synth_design -top game_top -part xc7a35tcpg236-1
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7a35t'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7a35t'
+INFO: [Device 21-403] Loading part xc7a35tcpg236-1
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
+INFO: [Synth 8-7075] Helper process launched with PID 6080
+WARNING: [Synth 8-6901] identifier 'Idle' is used before its declaration [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/Binary_To_BCD.v:57]
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:05 ; elapsed = 00:00:05 . Memory (MB): peak = 1018.582 ; gain = 0.000
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'game_top' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/game_1.v:3]
+	Parameter CENTER_X bound to: 512 - type: integer 
+	Parameter CENTER_Y bound to: 512 - type: integer 
+	Parameter DEAD_ZONE bound to: 100 - type: integer 
+	Parameter MAX_BULLET_SPEED bound to: 5 - type: integer 
+	Parameter KEY_W bound to: 9'b000011101 
+	Parameter KEY_A bound to: 9'b000011100 
+	Parameter KEY_S bound to: 9'b000011011 
+	Parameter KEY_D bound to: 9'b000100011 
+INFO: [Synth 8-6157] synthesizing module 'clock_divider' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/clock_divider.v:1]
+	Parameter n bound to: 2 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'clock_divider' (1#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/clock_divider.v:1]
+INFO: [Synth 8-6157] synthesizing module 'clock_divider__parameterized0' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/clock_divider.v:1]
+	Parameter n bound to: 25 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'clock_divider__parameterized0' (1#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/clock_divider.v:1]
+INFO: [Synth 8-6157] synthesizing module 'clock_divider__parameterized1' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/clock_divider.v:1]
+	Parameter n bound to: 5 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'clock_divider__parameterized1' (1#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/clock_divider.v:1]
+INFO: [Synth 8-6157] synthesizing module 'clock_divider__parameterized2' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/clock_divider.v:1]
+	Parameter n bound to: 20 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'clock_divider__parameterized2' (1#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/clock_divider.v:1]
+INFO: [Synth 8-6157] synthesizing module 'PmodJSTK' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/PmodJSTK.v:24]
+INFO: [Synth 8-6157] synthesizing module 'spiCtrl' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/spiCtrl.v:27]
+	Parameter Idle bound to: 3'b000 
+	Parameter Init bound to: 3'b001 
+	Parameter Wait bound to: 3'b010 
+	Parameter Check bound to: 3'b011 
+	Parameter Done bound to: 3'b100 
+	Parameter byteEndVal bound to: 3'b101 
+INFO: [Synth 8-6155] done synthesizing module 'spiCtrl' (2#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/spiCtrl.v:27]
+INFO: [Synth 8-6157] synthesizing module 'spiMode0' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/SPImode0.v:37]
+	Parameter Idle bound to: 2'b00 
+	Parameter Init bound to: 2'b01 
+	Parameter RxTx bound to: 2'b10 
+	Parameter Done bound to: 2'b11 
+INFO: [Synth 8-226] default block is never used [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/SPImode0.v:184]
+INFO: [Synth 8-6155] done synthesizing module 'spiMode0' (3#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/SPImode0.v:37]
+INFO: [Synth 8-6157] synthesizing module 'ClkDiv_66_67kHz' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/ClkDiv_66_67kHz.v:20]
+	Parameter cntEndVal bound to: 10'b1011101110 
+INFO: [Synth 8-6155] done synthesizing module 'ClkDiv_66_67kHz' (4#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/ClkDiv_66_67kHz.v:20]
+INFO: [Synth 8-6155] done synthesizing module 'PmodJSTK' (5#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/PmodJSTK.v:24]
+INFO: [Synth 8-6157] synthesizing module 'Binary_To_BCD' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/Binary_To_BCD.v:30]
+	Parameter Idle bound to: 3'b000 
+	Parameter Init bound to: 3'b001 
+	Parameter Shift bound to: 3'b011 
+	Parameter Check bound to: 3'b010 
+	Parameter Done bound to: 3'b110 
+INFO: [Synth 8-155] case statement is not full and has no default [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/Binary_To_BCD.v:84]
+INFO: [Synth 8-6155] done synthesizing module 'Binary_To_BCD' (6#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/Binary_To_BCD.v:30]
+INFO: [Synth 8-6157] synthesizing module 'SevenSegment' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/SevenSegment.v:1]
+INFO: [Synth 8-226] default block is never used [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/SevenSegment.v:51]
+INFO: [Synth 8-6155] done synthesizing module 'SevenSegment' (7#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/SevenSegment.v:1]
+INFO: [Synth 8-6157] synthesizing module 'vga_controller' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/vga.v:6]
+	Parameter HD bound to: 640 - type: integer 
+	Parameter HF bound to: 16 - type: integer 
+	Parameter HS bound to: 96 - type: integer 
+	Parameter HB bound to: 48 - type: integer 
+	Parameter HT bound to: 800 - type: integer 
+	Parameter VD bound to: 480 - type: integer 
+	Parameter VF bound to: 10 - type: integer 
+	Parameter VS bound to: 2 - type: integer 
+	Parameter VB bound to: 33 - type: integer 
+	Parameter VT bound to: 525 - type: integer 
+	Parameter hsync_default bound to: 1'b1 
+	Parameter vsync_default bound to: 1'b1 
+INFO: [Synth 8-6155] done synthesizing module 'vga_controller' (8#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/vga.v:6]
+INFO: [Synth 8-6157] synthesizing module 'KeyboardDecoder' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/KeyboardDecoder.v:1]
+	Parameter INIT bound to: 2'b00 
+	Parameter WAIT_FOR_SIGNAL bound to: 2'b01 
+	Parameter GET_SIGNAL_DOWN bound to: 2'b10 
+	Parameter WAIT_RELEASE bound to: 2'b11 
+	Parameter IS_INIT bound to: 8'b10101010 
+	Parameter IS_EXTEND bound to: 8'b11100000 
+	Parameter IS_BREAK bound to: 8'b11110000 
+INFO: [Synth 8-6157] synthesizing module 'KeyboardCtrl_0' [D:/logic_lab/HDL_FinalProject/project_1/project_1.runs/synth_1/.Xil/Vivado-5880-DESKTOP-K8G435R/realtime/KeyboardCtrl_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'KeyboardCtrl_0' (9#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.runs/synth_1/.Xil/Vivado-5880-DESKTOP-K8G435R/realtime/KeyboardCtrl_0_stub.v:6]
+INFO: [Synth 8-6157] synthesizing module 'one_pulse' [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/one_pulse.v:1]
+INFO: [Synth 8-6155] done synthesizing module 'one_pulse' (10#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/one_pulse.v:1]
+INFO: [Synth 8-226] default block is never used [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/KeyboardDecoder.v:64]
+INFO: [Synth 8-6155] done synthesizing module 'KeyboardDecoder' (11#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/KeyboardDecoder.v:1]
+INFO: [Synth 8-6155] done synthesizing module 'game_top' (12#1) [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/imports/HDL_FinalProject/game_1.v:3]
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:06 ; elapsed = 00:00:07 . Memory (MB): peak = 1018.582 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:07 ; elapsed = 00:00:08 . Memory (MB): peak = 1018.582 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:00:07 ; elapsed = 00:00:08 . Memory (MB): peak = 1018.582 ; gain = 0.000
+---------------------------------------------------------------------------------
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.050 . Memory (MB): peak = 1018.582 ; gain = 0.000
+INFO: [Project 1-570] Preparing netlist for logic optimization
+
+Processing XDC Constraints
+Initializing timing engine
+Parsing XDC File [d:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/ip/KeyboardCtrl_0/KeyboardCtrl_0/KeyboardCtrl_0_in_context.xdc] for cell 'key_de/inst'
+Finished Parsing XDC File [d:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/ip/KeyboardCtrl_0/KeyboardCtrl_0/KeyboardCtrl_0_in_context.xdc] for cell 'key_de/inst'
+Parsing XDC File [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/constrs_1/imports/HDL_FinalProject/Basys3_Master2.xdc]
+WARNING: [Vivado 12-584] No ports matched 'pass'. [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/constrs_1/imports/HDL_FinalProject/Basys3_Master2.xdc:47]
+WARNING: [Vivado 12-584] No ports matched 'pass'. [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/constrs_1/imports/HDL_FinalProject/Basys3_Master2.xdc:48]
+WARNING: [Vivado 12-584] No ports matched 'hold'. [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/constrs_1/imports/HDL_FinalProject/Basys3_Master2.xdc:117]
+WARNING: [Vivado 12-584] No ports matched 'hold'. [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/constrs_1/imports/HDL_FinalProject/Basys3_Master2.xdc:118]
+Finished Parsing XDC File [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/constrs_1/imports/HDL_FinalProject/Basys3_Master2.xdc]
+WARNING: [Project 1-498] One or more constraints failed evaluation while reading constraint file [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/constrs_1/imports/HDL_FinalProject/Basys3_Master2.xdc] and the design contains unresolved black boxes. These constraints will be read post-synthesis (as long as their source constraint file is marked as used_in_implementation) and should be applied correctly then. You should review the constraints listed in the file [.Xil/game_top_propImpl.xdc] and check the run log file to verify that these constraints were correctly applied.
+INFO: [Project 1-236] Implementation specific constraints were found while reading constraint file [D:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/constrs_1/imports/HDL_FinalProject/Basys3_Master2.xdc]. These constraints will be ignored for synthesis but will be used in implementation. Impacted constraints are listed in the file [.Xil/game_top_propImpl.xdc].
+Resolution: To avoid this warning, move constraints listed in [.Xil/game_top_propImpl.xdc] to another XDC file and exclude this new file from synthesis with the used_in_synthesis property (File Properties dialog in GUI) and re-run elaboration/synthesis.
+Completed Processing XDC Constraints
+
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.001 . Memory (MB): peak = 1073.852 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Constraint Validation Runtime : Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.009 . Memory (MB): peak = 1073.852 ; gain = 0.000
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:16 ; elapsed = 00:00:18 . Memory (MB): peak = 1073.852 ; gain = 55.270
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7a35tcpg236-1
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:16 ; elapsed = 00:00:18 . Memory (MB): peak = 1073.852 ; gain = 55.270
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying 'set_property' XDC Constraints
+---------------------------------------------------------------------------------
+Applied set_property IO_BUFFER_TYPE = NONE for PS2_CLK. (constraint file  d:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/ip/KeyboardCtrl_0/KeyboardCtrl_0/KeyboardCtrl_0_in_context.xdc, line 1).
+Applied set_property CLOCK_BUFFER_TYPE = NONE for PS2_CLK. (constraint file  d:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/ip/KeyboardCtrl_0/KeyboardCtrl_0/KeyboardCtrl_0_in_context.xdc, line 2).
+Applied set_property IO_BUFFER_TYPE = NONE for PS2_DATA. (constraint file  d:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/ip/KeyboardCtrl_0/KeyboardCtrl_0/KeyboardCtrl_0_in_context.xdc, line 3).
+Applied set_property CLOCK_BUFFER_TYPE = NONE for PS2_DATA. (constraint file  d:/logic_lab/HDL_FinalProject/project_1/project_1.srcs/sources_1/ip/KeyboardCtrl_0/KeyboardCtrl_0/KeyboardCtrl_0_in_context.xdc, line 4).
+Applied set_property KEEP_HIERARCHY = SOFT for key_de/inst. (constraint file  auto generated constraint).
+---------------------------------------------------------------------------------
+Finished applying 'set_property' XDC Constraints : Time (s): cpu = 00:00:17 ; elapsed = 00:00:18 . Memory (MB): peak = 1073.852 ; gain = 55.270
+---------------------------------------------------------------------------------
+INFO: [Synth 8-802] inferred FSM for state register 'pState_reg' in module 'spiCtrl'
+INFO: [Synth 8-802] inferred FSM for state register 'pState_reg' in module 'spiMode0'
+INFO: [Synth 8-802] inferred FSM for state register 'STATE_reg' in module 'Binary_To_BCD'
+INFO: [Synth 8-802] inferred FSM for state register 'digit_reg' in module 'SevenSegment'
+INFO: [Synth 8-802] inferred FSM for state register 'state_reg' in module 'KeyboardDecoder'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                    Idle |                            00001 |                              000
+                    Init |                            00010 |                              001
+                    Wait |                            00100 |                              010
+                   Check |                            01000 |                              011
+                    Done |                            10000 |                              100
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'pState_reg' using encoding 'one-hot' in module 'spiCtrl'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                    Idle |                               00 |                               00
+                    Init |                               01 |                               01
+                    RxTx |                               10 |                               10
+                    Done |                               11 |                               11
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'pState_reg' using encoding 'sequential' in module 'spiMode0'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                    Idle |                              000 |                              000
+                    Init |                              001 |                              001
+                   Shift |                              010 |                              011
+                   Check |                              011 |                              010
+                    Done |                              100 |                              110
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'STATE_reg' using encoding 'sequential' in module 'Binary_To_BCD'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                 iSTATE3 |                              000 |                             1111
+*
+                  iSTATE |                              001 |                             1110
+                 iSTATE0 |                              010 |                             1101
+                 iSTATE1 |                              011 |                             1011
+                 iSTATE2 |                              100 |                             0111
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'digit_reg' using encoding 'sequential' in module 'SevenSegment'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                    INIT |                               00 |                               00
+         WAIT_FOR_SIGNAL |                               01 |                               01
+         GET_SIGNAL_DOWN |                               10 |                               10
+            WAIT_RELEASE |                               11 |                               11
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'state_reg' using encoding 'sequential' in module 'KeyboardDecoder'
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 1073.852 ; gain = 55.270
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input   32 Bit       Adders := 2     
+	   2 Input   16 Bit       Adders := 2     
+	   3 Input   12 Bit       Adders := 2     
+	   2 Input   11 Bit       Adders := 4     
+	   2 Input   10 Bit       Adders := 6     
+	   2 Input    5 Bit       Adders := 4     
+	   2 Input    4 Bit       Adders := 8     
+	   2 Input    3 Bit       Adders := 1     
+	   2 Input    2 Bit       Adders := 1     
++---Registers : 
+	              512 Bit    Registers := 1     
+	               40 Bit    Registers := 2     
+	               28 Bit    Registers := 2     
+	               16 Bit    Registers := 2     
+	               10 Bit    Registers := 12    
+	                8 Bit    Registers := 3     
+	                5 Bit    Registers := 4     
+	                4 Bit    Registers := 1     
+	                3 Bit    Registers := 1     
+	                2 Bit    Registers := 1     
+	                1 Bit    Registers := 19    
++---Multipliers : 
+	               4x32  Multipliers := 2     
++---Muxes : 
+	   2 Input  512 Bit        Muxes := 1     
+	   5 Input   40 Bit        Muxes := 1     
+	   2 Input   28 Bit        Muxes := 2     
+	   5 Input   28 Bit        Muxes := 4     
+	   2 Input   10 Bit        Muxes := 6     
+	   4 Input   10 Bit        Muxes := 1     
+	   5 Input    8 Bit        Muxes := 1     
+	   4 Input    8 Bit        Muxes := 1     
+	   5 Input    5 Bit        Muxes := 3     
+	   2 Input    5 Bit        Muxes := 5     
+	   4 Input    5 Bit        Muxes := 1     
+	   5 Input    4 Bit        Muxes := 2     
+	   2 Input    4 Bit        Muxes := 8     
+	   5 Input    3 Bit        Muxes := 4     
+	   2 Input    3 Bit        Muxes := 4     
+	   4 Input    2 Bit        Muxes := 2     
+	   2 Input    2 Bit        Muxes := 5     
+	   5 Input    1 Bit        Muxes := 11    
+	   4 Input    1 Bit        Muxes := 11    
+	   2 Input    1 Bit        Muxes := 18    
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 90 (col length:60)
+BRAMs: 100 (col length: RAMB18 60 RAMB36 30)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+DSP Report: Generating DSP player_y1, operation Mode is: C+A*(B:0x1e0).
+DSP Report: operator player_y1 is absorbed into DSP player_y1.
+DSP Report: operator player_y2 is absorbed into DSP player_y1.
+DSP Report: Generating DSP player_x1, operation Mode is: C+A*(B:0x280).
+DSP Report: operator player_x1 is absorbed into DSP player_x1.
+DSP Report: operator player_x2 is absorbed into DSP player_x1.
+DSP Report: Generating DSP bullet_active3, operation Mode is: A*B.
+DSP Report: operator bullet_active3 is absorbed into DSP bullet_active3.
+DSP Report: Generating DSP bullet_active2, operation Mode is: C+A*B.
+DSP Report: operator bullet_active2 is absorbed into DSP bullet_active2.
+DSP Report: operator bullet_active3 is absorbed into DSP bullet_active2.
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:23 ; elapsed = 00:00:25 . Memory (MB): peak = 1073.852 ; gain = 55.270
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+DSP: Preliminary Mapping	Report (see note below)
++------------+---------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|Module Name | DSP Mapping   | A Size | B Size | C Size | D Size | P Size | AREG | BREG | CREG | DREG | ADREG | MREG | PREG | 
++------------+---------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|game_top    | C+A*(B:0x1e0) | 16     | 9      | 10     | -      | 20     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|game_top    | C+A*(B:0x280) | 16     | 10     | 10     | -      | 20     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|game_top    | A*B           | 16     | 16     | -      | -      | 32     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|game_top    | C+A*B         | 16     | 16     | 16     | -      | 16     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
++------------+---------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+
+Note: The table above is a preliminary report that shows the DSPs inferred at the current stage of the synthesis flow. Some DSP may be reimplemented as non DSP primitives later in the synthesis flow. Multiple instantiated DSPs are reported only once.
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying XDC Timing Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Applying XDC Timing Constraints : Time (s): cpu = 00:00:35 ; elapsed = 00:00:37 . Memory (MB): peak = 1095.402 ; gain = 76.820
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:35 ; elapsed = 00:00:37 . Memory (MB): peak = 1117.973 ; gain = 99.391
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:36 ; elapsed = 00:00:38 . Memory (MB): peak = 1127.566 ; gain = 108.984
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:40 ; elapsed = 00:00:42 . Memory (MB): peak = 1130.578 ; gain = 111.996
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:40 ; elapsed = 00:00:42 . Memory (MB): peak = 1130.578 ; gain = 111.996
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:41 ; elapsed = 00:00:43 . Memory (MB): peak = 1130.578 ; gain = 111.996
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:41 ; elapsed = 00:00:43 . Memory (MB): peak = 1130.578 ; gain = 111.996
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:41 ; elapsed = 00:00:43 . Memory (MB): peak = 1130.578 ; gain = 111.996
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:41 ; elapsed = 00:00:43 . Memory (MB): peak = 1130.578 ; gain = 111.996
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++------+---------------+----------+
+|      |BlackBox name  |Instances |
++------+---------------+----------+
+|1     |KeyboardCtrl_0 |         1|
++------+---------------+----------+
+
+Report Cell Usage: 
++------+-------------+------+
+|      |Cell         |Count |
++------+-------------+------+
+|1     |KeyboardCtrl |     1|
+|2     |BUFG         |     4|
+|3     |CARRY4       |   137|
+|4     |DSP48E1      |     4|
+|6     |LUT1         |   108|
+|7     |LUT2         |   253|
+|8     |LUT3         |    91|
+|9     |LUT4         |    98|
+|10    |LUT5         |   192|
+|11    |LUT6         |   114|
+|12    |FDCE         |   100|
+|13    |FDPE         |     7|
+|14    |FDRE         |   259|
+|15    |FDSE         |     4|
+|16    |IBUF         |     5|
+|17    |OBUF         |    28|
++------+-------------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:41 ; elapsed = 00:00:43 . Memory (MB): peak = 1130.578 ; gain = 111.996
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 0 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:31 ; elapsed = 00:00:40 . Memory (MB): peak = 1130.578 ; gain = 56.727
+Synthesis Optimization Complete : Time (s): cpu = 00:00:41 ; elapsed = 00:00:43 . Memory (MB): peak = 1130.578 ; gain = 111.996
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.028 . Memory (MB): peak = 1142.660 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 141 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.001 . Memory (MB): peak = 1142.660 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+INFO: [Common 17-83] Releasing license: Synthesis
+62 Infos, 6 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:47 ; elapsed = 00:00:51 . Memory (MB): peak = 1142.660 ; gain = 124.078
+INFO: [Common 17-1381] The checkpoint 'D:/logic_lab/HDL_FinalProject/project_1/project_1.runs/synth_1/game_top.dcp' has been generated.
+INFO: [runtcl-4] Executing : report_utilization -file game_top_utilization_synth.rpt -pb game_top_utilization_synth.pb
+INFO: [Common 17-206] Exiting Vivado at Sat Dec 14 17:14:52 2024...

@@ -1,5 +1,5 @@
-/*æ²’æœ‰ä»€éº¼å¤§å•é¡Œ
-TODOï¼šéš¨æ©Ÿç”Ÿæˆå¤šå€‹æ•µäºº*/
+/*›]ÓÐÊ²üN´ó†–î}
+TODO£ºëS™CÉú³É¶à‚€”³ÈË*/
 module game_top(
     input wire clk,
     input wire rst,
@@ -64,20 +64,20 @@ PmodJSTK jstk_inst(
 assign sndData = {8'b100000, {SW[1], SW[2]}};
 
 // Extract joystick components
-// å¾žPmodJSTKæ–‡æ¡£ä¸­å¯ä»¥çœ‹åˆ°ï¼Œæ–æ†æ•°æ®æ ¼å¼å¦‚ä¸‹ï¼š
+// ÄPmodJSTKÎÄµµÖÐ¿ÉÒÔ¿´µ½£¬“u¸ËÊý¾Ý¸ñÊ½ÈçÏÂ£º
 wire [9:0] joystick_x = {joystick_data[9:8], joystick_data[23:16]};
 wire [9:0] joystick_y = {joystick_data[25:24], joystick_data[39:32]};
-// å¾žç¤ºä¾‹ä»£ç¢¼å¯çœ‹åˆ°æŒ‰éˆ•çš„è™•ç†æ–¹å¼
+// ÄÊ¾Àý´ú´a¿É¿´µ½°´âoµÄÌŽÀí·½Ê½
 wire [2:0] joystick_button = {joystick_data[1], joystick_data[2], joystick_data[0]};
 
-// Binary to BCD è½‰æ›å™¨å¯¦ä¾‹
+// Binary to BCD ÞD“QÆ÷ŒÀý
 wire [15:0] x_bcd, y_bcd;
 wire x_convert_done, y_convert_done;
 
 Binary_To_BCD x_converter(
     .CLK(clk),
     .RST(rst),
-    .START(1'b1),        // æŒçºŒè½‰æ›
+    .START(1'b1),        // ³ÖÀmÞD“Q
     .BIN(joystick_x),
     .BCDOUT(x_bcd)
 );
@@ -85,15 +85,15 @@ Binary_To_BCD x_converter(
 Binary_To_BCD y_converter(
     .CLK(clk),
     .RST(rst),
-    .START(1'b1),        // æŒçºŒè½‰æ›
+    .START(1'b1),        // ³ÖÀmÞD“Q
     .BIN(joystick_y),
     .BCDOUT(y_bcd)
 );
 
-// é€™å…©å€‹ wire æ²’æœ‰äº‹å…ˆå®£å‘Š
+// ß@ƒÉ‚€ wire ›]ÓÐÊÂÏÈÐû¸æ
 wire [15:0] joystick_x_final;  
 wire [15:0] joystick_y_final;
-// æ‡‰è©²æ”¹ç‚ºåˆä½µæ•¸å­—çš„å¯«æ³•ï¼Œå°‡BCDå€¼è½‰å›žäºŒé€²åˆ¶ï¼š
+// ‘ªÔ“¸ÄžéºÏã”µ×ÖµÄŒ‘·¨£¬Œ¢BCDÖµÞD»Ø¶þßMÖÆ£º
 assign joystick_x_final = (x_bcd[15:12] * 1000) + (x_bcd[11:8] * 100) + (x_bcd[7:4] * 10) + x_bcd[3:0];
 assign joystick_y_final = (y_bcd[15:12] * 1000) + (y_bcd[11:8] * 100) + (y_bcd[7:4] * 10) + y_bcd[3:0];
 
@@ -131,13 +131,13 @@ reg [9:0] enemy_y;
 reg enemy_active;
 reg bullet_hit;
 
-reg signed [15:0] dx, dy; // å…è¨±è² å€¼
+reg signed [15:0] dx, dy; // ÔÊÔSØ“Öµ
 reg [15:0] magnitude;
 
-parameter CENTER_X = 512;  // æ–æ†ä¸­å¿ƒXåº§æ¨™
-parameter CENTER_Y = 512;  // æ–æ†ä¸­å¿ƒYåº§æ¨™
-parameter DEAD_ZONE = 100; // æ­»å€ç¯„åœ
-parameter MAX_BULLET_SPEED = 5; // å­å½ˆæœ€å¤§é€Ÿåº¦
+parameter CENTER_X = 512;  // “u¸ËÖÐÐÄX×ù˜Ë
+parameter CENTER_Y = 512;  // “u¸ËÖÐÐÄY×ù˜Ë
+parameter DEAD_ZONE = 100; // ËÀ…^¹ ‡ú
+parameter MAX_BULLET_SPEED = 5; // ×Ó—×î´óËÙ¶È
 
 // Keyboard interface
 wire [511:0] key_down;
@@ -230,7 +230,7 @@ always @(posedge clk_bullet or posedge rst) begin
         // Shift not pressed: control bullet direction
         dx = $signed(joystick_x_final) - $signed(CENTER_X);
         dy = $signed(joystick_y_final) - $signed(CENTER_Y);
-        magnitude = (dx * dx + dy * dy) >> 8; // é™¤ä»¥256ä½œç‚ºç¸®æ—ºå› å­
+        magnitude = (dx * dx + dy * dy) >> 8; // ³ýÒÔ256×÷žé¿sÍúÒò×Ó
         if (magnitude > DEAD_ZONE * DEAD_ZONE >> 8) begin
             bullet_active <= 1;
             bullet_x <= player_x + 10;

@@ -1,0 +1,18 @@
+#-----------------------------------------------------------
+# Vivado v2020.2 (64-bit)
+# SW Build 3064766 on Wed Nov 18 09:12:45 MST 2020
+# IP Build 3064653 on Wed Nov 18 14:17:31 MST 2020
+# Start of session at: Sat Dec 14 14:52:01 2024
+# Process ID: 14324
+# Current directory: D:/logic_lab/HDL_FinalProject/project_1
+# Command line: vivado.exe -gui_launcher_event rodinguilauncherevent14788 D:\logic_lab\HDL_FinalProject\project_1\project_1.xpr
+# Log file: D:/logic_lab/HDL_FinalProject/project_1/vivado.log
+# Journal file: D:/logic_lab/HDL_FinalProject/project_1\vivado.jou
+#-----------------------------------------------------------
+start_gui
+exit
+INFO: [Common 17-206] Exiting Vivado at Sat Dec 14 14:53:03 2024...
+[Common 17-41] Interrupt caught. Command should exit soon.
+INFO: [Common 17-344] 'open_project' was cancelled
+exit
+INFO: [Common 17-206] Exiting Vivado at Sat Dec 14 14:52:59 2024...
