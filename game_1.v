@@ -95,10 +95,12 @@ wire [15:0] joystick_y_final;
 assign joystick_x_final = (x_bcd[15:12] * 1000) + (x_bcd[11:8] * 100) + (x_bcd[7:4] * 10) + x_bcd[3:0];
 assign joystick_y_final = (y_bcd[15:12] * 1000) + (y_bcd[11:8] * 100) + (y_bcd[7:4] * 10) + y_bcd[3:0];
 
+// Score register
+reg [7:0] score;
 
-wire joystick_num;
-assign joystick_num = (SW[0] == 1'b1) ? {x_bcd} : {y_bcd};
-SevenSegment m1(.display(display), .digit(digit), .nums(joystick_num), .rst(rst), .clk(clk));
+wire [15:0] nums;
+assign nums = {4'hF, 4'hF, score[7:4], score[3:0]};
+SevenSegment m1(.display(display), .digit(digit), .nums(nums), .rst(rst), .clk(clk));
 
 // VGA controller signals
 wire [9:0] h_cnt;
@@ -125,10 +127,21 @@ reg signed [9:0] bullet_dy;
 
 // Enemy position and state
 
-reg [9:0] enemy_x;
+/*reg [9:0] enemy_x;
 reg [9:0] enemy_y;
-reg enemy_active;
+reg enemy_active;*/
 reg bullet_hit;
+// 最大敌人数
+parameter MAX_ENEMIES = 10;
+
+// 敌人位置和状态
+reg [9:0] enemy_x[MAX_ENEMIES - 1:0];
+reg [9:0] enemy_y[MAX_ENEMIES - 1:0];
+reg enemy_active[MAX_ENEMIES - 1:0];
+
+// 随机数生成器（伪随机数）
+reg [9:0] random_seed;
+
 
 reg signed [15:0] dx, dy; // 允许负值
 reg [15:0] magnitude;
@@ -138,6 +151,9 @@ parameter CENTER_Y = 512;  // 搖桿中心Y座標
 parameter DEAD_ZONE = 100; // 死區範圍
 parameter MAX_BULLET_SPEED = 5; // 子彈最大速度
 
+integer i;
+reg [9:0] LFSR;
+
 // Initialize player position at screen center
 initial begin
     player_x = 320; // Center of 640 width
@@ -145,9 +161,16 @@ initial begin
     bullet_active = 0;
     bullet_dx = 0;
     bullet_dy = -1; // Default upward
-    enemy_x = 100; // Initial position of enemy
+    /*enemy_x = 100; // Initial position of enemy
     enemy_y = 100;
-    enemy_active = 1;
+    enemy_active = 1;*/
+    //random_seed = 10'b0101010101; // 初始随机种子
+    for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
+        enemy_x[i] = 0;
+        enemy_y[i] = 0;
+        enemy_active[i] = 0;
+    end
+    score = 0; // Initial score is 0
 end
 
 // Update player position based on joystick input
@@ -170,10 +193,14 @@ always @(posedge clk_bullet or posedge rst) begin
         bullet_y <= 0;
         bullet_dx <= 0;
         bullet_dy <= 0;
-        enemy_active <= 1;
+        /*enemy_active <= 1;
         enemy_x <= 100;
-        enemy_y <= 100;
+        enemy_y <= 100;*/
         bullet_hit <= 0;
+        for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
+            enemy_active[i] <= 0;
+        end
+        score <= 0; // Reset score
     end else if (joystick_button[0] && !bullet_active) begin  // 使用按鈕0觸發射擊
         /*bullet_active <= 1;
         bullet_x <= player_x + 10;  // 从玩家位置发射
@@ -232,15 +259,56 @@ always @(posedge clk_bullet or posedge rst) begin
         end
 
         // Enemy hit detection
-        if (enemy_active &&
+        /*if (enemy_active &&
             bullet_x + 5 >= enemy_x && bullet_x < enemy_x + 20 &&
             bullet_y + 10 >= enemy_y && bullet_y < enemy_y + 20) begin
             enemy_active <= 0; // Enemy disappears when hit
             bullet_active <= 0; // Reset bullet
             bullet_hit <= 1;
+        end*/
+        for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
+            if (enemy_active[i] &&
+                bullet_x + 5 >= enemy_x[i] && bullet_x < enemy_x[i] + 20 &&
+                bullet_y + 10 >= enemy_y[i] && bullet_y < enemy_y[i] + 20) begin
+                enemy_active[i] <= 0; // 敌人消失
+                bullet_active <= 0; // 子弹消失
+                bullet_hit <= 1;
+                if (score <= 8'd99) begin  // 確保分數不會超過99
+                    score <= score + 1; // 每次得分加10
+                end
+            end
+        end
+    end
+    else begin
+        for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
+            if (!enemy_active[i]) begin
+                random_seed <= LFSR;
+                enemy_x[i] <= random_seed % 640; // 随机x坐标
+                enemy_y[i] <= random_seed % 480; // 随机y坐标
+                enemy_active[i] <= 1;
+                //break; // 每次只生成一个敌人
+            end
         end
     end
 end
+
+always @(posedge clk_1Hz or posedge rst) begin
+        if (rst) begin
+            LFSR <= 10'b1010_0000_00; 
+        end else begin
+            LFSR[9] <= LFSR[1];
+            LFSR[8] <= LFSR[4];
+            LFSR[7] <= LFSR[8] ^ LFSR[1];
+            LFSR[6] <= LFSR[7] ^ LFSR[1];
+            LFSR[5] <= LFSR[6];
+            LFSR[4] <= LFSR[5] ^ LFSR[1];
+            LFSR[3] <= LFSR[4];
+            LFSR[2] <= LFSR[3];
+            LFSR[1] <= LFSR[2];
+            LFSR[0] <= LFSR[9];
+        end
+    end
+
 
 
 // VGA output for player, bullet, and enemy
@@ -254,15 +322,18 @@ always @(*) begin
             vgaRed = 4'h0;
             vgaGreen = 4'hF; // Bullet block in green
             vgaBlue = 4'h0;
-        end else if (enemy_active && v_cnt >= enemy_y && v_cnt < enemy_y + 20 && h_cnt >= enemy_x && h_cnt < enemy_x + 20) begin
+        end /*else if (enemy_active && v_cnt >= enemy_y && v_cnt < enemy_y + 20 && h_cnt >= enemy_x && h_cnt < enemy_x + 20) begin
             vgaRed = 4'h0; // Enemy block in blue
             vgaGreen = 4'h0;
             vgaBlue = 4'hF;
-        end else begin
-            vgaRed = 4'h0;
-            vgaGreen = 4'h0;
-            vgaBlue = 4'h0;
-        end
+        end*/
+        else begin
+            for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
+                if (enemy_active[i] && v_cnt >= enemy_y[i] && v_cnt < enemy_y[i] + 20 && h_cnt >= enemy_x[i] && h_cnt < enemy_x[i] + 20) begin
+                    vgaBlue = 4'hF; // Enemy block in blue
+                end
+            end
+        end 
     end else begin
         vgaRed = 4'h0;
         vgaGreen = 4'h0;
