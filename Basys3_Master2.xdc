@@ -1,3 +1,8 @@
+
+
+
+
+
 ## This file is a general .xdc for the Basys3 rev B board
 ## To use it in a project:
 ## - uncomment the lines corresponding to used pins
@@ -167,19 +172,19 @@ set_property PACKAGE_PIN G2 [get_ports {SCLK}]
 
 
 
-##Pmod Header JB
-##Sch name = JB1
-#set_property PACKAGE_PIN A14 [get_ports {JB[0]}]
-#set_property IOSTANDARD LVCMOS33 [get_ports {JB[0]}]
-##Sch name = JB2
-#set_property PACKAGE_PIN A16 [get_ports {JB[1]}]
-#set_property IOSTANDARD LVCMOS33 [get_ports {JB[1]}]
-##Sch name = JB3
-#set_property PACKAGE_PIN B15 [get_ports {JB[2]}]
-#set_property IOSTANDARD LVCMOS33 [get_ports {JB[2]}]
-##Sch name = JB4
-#set_property PACKAGE_PIN B16 [get_ports {JB[3]}]
-#set_property IOSTANDARD LVCMOS33 [get_ports {JB[3]}]
+# Pmod Header JB
+# Sch name = JB1
+set_property PACKAGE_PIN A14 [get_ports {audio_mclk}]
+   set_property IOSTANDARD LVCMOS33 [get_ports {audio_mclk}]
+# Sch name = JB2
+set_property PACKAGE_PIN A16 [get_ports {audio_lrck}]
+   set_property IOSTANDARD LVCMOS33 [get_ports {audio_lrck}]
+# Sch name = JB3
+set_property PACKAGE_PIN B15 [get_ports {audio_sck}]
+   set_property IOSTANDARD LVCMOS33 [get_ports {audio_sck}]
+# Sch name = JB4
+set_property PACKAGE_PIN B16 [get_ports {audio_sdin}]
+   set_property IOSTANDARD LVCMOS33 [get_ports {audio_sdin}]
 ##Sch name = JB7
 #set_property PACKAGE_PIN A15 [get_ports {JB[4]}]
 #set_property IOSTANDARD LVCMOS33 [get_ports {JB[4]}]
