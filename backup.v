@@ -15,7 +15,11 @@ module game_top(
     output wire hsync,
     output wire vsync,
     output wire [6:0] display,
-    output wire [3:0] digit
+    output wire [3:0] digit,
+    output wire audio_mclk, // 主時鐘
+    output wire audio_lrck, // 左右聲道切換信號
+    output wire audio_sck,  // 串行時鐘
+    output wire audio_sdin  // 串行音頻數據
 );
 
 // Clock divider for 25MHz VGA clock
@@ -50,6 +54,7 @@ wire [39:0] joystick_data;
 wire [7:0] sndData;
 // Data to be sent to PmodJSTK, lower two bits will turn on leds on PmodJSTK
 assign sndData = {8'b100000, {SW[1], SW[2]}};
+
 PmodJSTK jstk_inst(
     .CLK(clk),
     .RST(rst),
@@ -88,7 +93,22 @@ KeyboardDecoder key_de (
     .PS2_CLK(PS2_CLK),
     .rst(rst),
     .clk(clk)
-);*/
+);
+
+always @ (posedge clk, posedge rst) begin
+		if (rst) begin
+			LED[0] <= 1'b0;
+            LED[1] <= 1'b0;
+		end else begin
+			if (been_ready && key_down[last_change] == 1'b1) begin
+					if (shift_down == 1'b1) begin
+						LED[0] <= 1'b1;
+					end else begin
+						LED[1] <= 1'b1;
+					end
+				end
+			end
+	end*/
 
 
 
@@ -147,6 +167,50 @@ vga_controller vga_inst(
     .vsync(vsync)
 );
 
+//music
+wire [21:0] music_note_div;
+wire [15:0] audio_in_left, audio_in_right; // 音頻數據
+
+wire [15:0] bullet_audio;    // 子彈音效信號
+reg bullet_sound_trigger;    // 子彈音效觸發信號
+
+wire [15:0] mixed_audio;
+
+background_music bgm_inst (
+    .clk(clk_1Hz),   // 使用 1Hz 時鐘控制音階變化速度
+    .rst(rst),
+    .note_div(music_note_div)
+);
+buzzer_control music_gen (
+    .clk(clk),
+    .rst(rst),
+    .note_div(music_note_div),    // 背景音樂的音符分頻值
+    .audio_left(audio_in_left),  // 音頻左聲道輸出
+    .audio_right(audio_in_right),// 音頻右聲道輸出
+    .vol_num(3'b011)             // 預設音量
+);
+speaker_control speaker (
+    .clk(clk),
+    .rst(rst),
+    .audio_in_left(mixed_audio), // 混合後的音頻
+    .audio_in_right(mixed_audio),// 混合後的音頻
+    .audio_mclk(audio_mclk),
+    .audio_lrck(audio_lrck),
+    .audio_sck(audio_sck),
+    .audio_sdin(audio_sdin)
+);
+bullet_sound bullet_sound_inst (
+    .clk(clk),                // 系統時鐘
+    .rst(rst),                // 重置信號
+    .trigger(bullet_sound_trigger), // 子彈音效觸發信號
+    .audio(bullet_audio)      // 子彈音效輸出
+);
+audio_mixer audio_mixer_inst (
+    .bgm_audio(audio_in_left),    // 背景音樂
+    .sfx_audio(bullet_audio),     // 子彈音效
+    .mixed_audio(mixed_audio)     // 混合音頻
+);
+
 // Player and bullet positions
 reg [9:0] player_x;
 reg [9:0] player_y;
@@ -167,10 +231,6 @@ parameter MAX_ENEMIES = 10;
 reg [9:0] enemy_x[MAX_ENEMIES - 1:0];
 reg [9:0] enemy_y[MAX_ENEMIES - 1:0];
 reg enemy_active[MAX_ENEMIES - 1:0];
-
-// 随机数生成器（伪随机数）
-//reg [9:0] random_seed;
-
 
 reg signed [31:0] dx, dy;
 reg [31:0] magnitude;
@@ -223,7 +283,7 @@ always @(posedge clk_bullet or posedge rst) begin
             enemy_active[i] <= 0;
         end
         score <= 0; // Reset score
-        //random_seed <= 0;
+        bullet_sound_trigger <= 0; // 重置音效觸發信號
     end else if (joystick_button[0] && !bullet_active) begin  // 使用按鈕0觸發射擊
         // 計算搖桿相對於中心的偏移
             dx = $signed(joystick_x_final) - $signed(CENTER_X);
@@ -238,7 +298,8 @@ always @(posedge clk_bullet or posedge rst) begin
                 bullet_x <= player_x + 10;
                 bullet_y <= player_y;
                 bullet_hit <= 0;
-                
+                bullet_sound_trigger <= 1; // 觸發子彈音效
+
                 // 標準化方向向量並乘以速度
                 // 使用位移運算代替除法，並保持合適的精度
                 if (dx > 0) begin
@@ -283,6 +344,7 @@ always @(posedge clk_bullet or posedge rst) begin
                 enemy_active[i] <= 1;
             end
         end
+        bullet_sound_trigger <= 0; // 停止音效觸發信號
     end
 end
 
@@ -331,3 +393,21 @@ always @(*) begin
 end
 
 endmodule
+
+//============================================================
+// 七段顯示器 (Score 與 搖桿座標切換)
+// SW[0] = 0 顯示 Score
+// SW[0] = 1, SW[1] = 1 顯示 x_bcd
+// SW[0] = 1, SW[1] = 0 顯示 y_bcd
+//============================================================
+/*wire [15:0] score_bcd = {4'hF,4'hF,score[7:4],score[3:0]};
+wire [15:0] nums_to_display = (SW[0] == 1'b0) ? score_bcd :
+                              (SW[1] == 1'b1) ? x_bcd : y_bcd;
+
+SevenSegment m1(
+    .display(display), 
+    .digit(digit), 
+    .nums(nums_to_display),
+    .rst(rst), 
+    .clk(clk)
+);*/
