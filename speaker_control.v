@@ -79,3 +79,87 @@ module speaker_control(
         endcase
 
 endmodule
+
+module buzzer_control(
+    clk, // clock from crystal
+    rst, // active high reset
+    note_div, // div for note generation
+    audio_left, // left sound audio
+    audio_right, // right sound audio
+    vol_num
+    );
+    
+    // I/O declaration
+	input clk; // clock from crystal
+	input rst; // active high reset
+	input [21:0] note_div; // div for note generation
+	output [15:0] audio_left; // left sound audio
+	output [15:0] audio_right; // right sound audio
+	input [3:0]vol_num;
+	
+	// Declare internal signals
+	reg [21:0] clk_cnt_next, clk_cnt;
+	reg b_clk, b_clk_next;
+	// Note frequency generation
+	always @(posedge clk or posedge rst)
+		if (rst == 1'b1) begin
+			clk_cnt <= 22'd0;
+			b_clk <= 1'b0;
+		end 
+		else begin
+			clk_cnt <= clk_cnt_next;
+			b_clk <= b_clk_next;
+		end
+	always @* begin
+		if (clk_cnt == note_div) begin
+			clk_cnt_next = 22'd0;
+			b_clk_next = ~b_clk;
+		end 
+		else begin
+			clk_cnt_next = clk_cnt + 1'b1;
+			b_clk_next = b_clk;
+		end
+	end
+	// Assign the amplitude of the note
+
+	reg [15:0] AMP_P, AMP_N;
+
+	always @(posedge clk or posedge rst) begin
+		if (rst == 1'b1) begin
+			AMP_N <= 16'hC000;
+			AMP_P <= 16'h4000;
+		end 
+		else begin
+			case(vol_num)
+			5:begin //14
+				AMP_N <= 16'hC000;
+				AMP_P <= 16'h4000;
+			end 
+			4:begin //13
+				AMP_N <= 16'hE000;
+				AMP_P <= 16'h2000;
+			end
+			3:begin //12
+				AMP_N <= 16'hF000;
+				AMP_P <= 16'h1000;
+			end
+			2:begin //11
+				AMP_N <= 16'hF800;
+				AMP_P <= 16'h0800;
+			end
+			1:begin //10
+				AMP_N <= 16'hFC00;
+				AMP_P <= 16'h0400;
+			end
+			default: begin //10
+				AMP_N <= 16'hFC00;
+				AMP_P <= 16'h0400;
+			end
+		endcase
+		end
+	end
+
+
+	assign audio_left = (b_clk == 1'b0) ? AMP_N : AMP_P;
+	assign audio_right = (b_clk == 1'b0) ? AMP_N : AMP_P;
+endmodule
