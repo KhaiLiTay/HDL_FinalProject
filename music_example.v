@@ -31,22 +31,41 @@ module bullet_sound(
     input wire clk,            // 系統時鐘
     input wire rst,            // 重置信號
     input wire trigger,        // 音效觸發信號
+    input wire [3:0] vol_num,  // 音量控制輸入
     output reg [15:0] audio    // 音效輸出
 );
     reg [21:0] clk_cnt;        // 時鐘計數器
     reg [21:0] note_div;       // 當前音符分頻值
     reg active;                // 音效是否啟動
     reg [31:0] duration_cnt;   // 音效持續時間計數器
+    reg [15:0] AMP_P, AMP_N;   // 音效振幅
 
-    // 設定比 si 更高的頻率（如高音 do）
+    // 高音頻率
     localparam HIGH_FREQ = 22'd90000;   // 90kHz 高音
     localparam DURATION = 32'd5000000; // 1秒持續時間 (50MHz 時鐘)
 
     // 初始化參數
     initial begin
-        note_div = HIGH_FREQ;   // 預設為高音
+        note_div = HIGH_FREQ;  // 預設為高音
         active = 0;
         audio = 0;
+    end
+
+    // 根據音量設置振幅
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            AMP_P <= 16'h4000;  // 預設振幅
+            AMP_N <= 16'hC000;
+        end else begin
+            case (vol_num)
+                5: begin AMP_P <= 16'h4000; AMP_N <= 16'hC000; end
+                4: begin AMP_P <= 16'h3000; AMP_N <= 16'hD000; end
+                3: begin AMP_P <= 16'h2000; AMP_N <= 16'hE000; end
+                2: begin AMP_P <= 16'h1000; AMP_N <= 16'hF000; end
+                1: begin AMP_P <= 16'h0800; AMP_N <= 16'hF800; end
+                default: begin AMP_P <= 16'h0400; AMP_N <= 16'hFC00; end
+            endcase
+        end
     end
 
     always @(posedge clk or posedge rst) begin
@@ -57,7 +76,7 @@ module bullet_sound(
             audio <= 0;
         end else if (trigger && !active) begin
             active <= 1;               // 啟動音效
-            duration_cnt <= DURATION; // 設定音效持續時間
+            duration_cnt <= DURATION;  // 設定音效持續時間
         end else if (active) begin
             if (duration_cnt == 0) begin
                 active <= 0;           // 停止音效
@@ -68,16 +87,17 @@ module bullet_sound(
                 // 生成方波音頻信號
                 if (clk_cnt == note_div) begin
                     clk_cnt <= 0;
-                    audio <= ~audio;   // 方波信號翻轉
+                    audio <= (audio == AMP_P) ? AMP_N : AMP_P; // 方波切換
                 end else begin
                     clk_cnt <= clk_cnt + 1;
                 end
             end
         end else begin
-            audio <= 0;                // 無音效時保持靜音
+            audio <= 0;  // 無音效時保持靜音
         end
     end
 endmodule
+
 
 module audio_mixer(
     input wire [15:0] bgm_audio,   // 背景音樂
