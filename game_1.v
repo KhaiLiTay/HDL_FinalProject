@@ -96,13 +96,13 @@ Binary_To_BCD y_converter(
     .BCDOUT(y_bcd)
 );
 
-// 將 BCD 轉回 16 位二進位數值
-wire [15:0] joystick_x_final = (x_bcd[15:12] * 16'd1000) + (x_bcd[11:8] * 16'd100) + (x_bcd[7:4] * 16'd10) + x_bcd[3:0];
-wire [15:0] joystick_y_final = (y_bcd[15:12] * 16'd1000) + (y_bcd[11:8] * 16'd100) + (y_bcd[7:4] * 16'd10) + y_bcd[3:0];
+// 這兩個 wire 沒有事先宣告
+wire [15:0] joystick_x_final;  
+wire [15:0] joystick_y_final;
+// 應該改為合併數字的寫法，將BCD值轉回二進制：
+assign joystick_x_final = (x_bcd[15:12] * 1000) + (x_bcd[11:8] * 100) + (x_bcd[7:4] * 10) + x_bcd[3:0];
+assign joystick_y_final = (y_bcd[15:12] * 1000) + (y_bcd[11:8] * 100) + (y_bcd[7:4] * 10) + y_bcd[3:0];
 
-//============================================================
-// 七段顯示器 (Score)
-//============================================================
 // Score register
 reg [7:0] score;
 
@@ -110,38 +110,7 @@ wire [15:0] nums;
 assign nums = {4'hF, 4'hF, score[7:4], score[3:0]};
 SevenSegment m1(.display(display), .digit(digit), .nums(nums), .rst(rst), .clk(clk));
 
-//============================================================
-// Keyboard Interface
-//============================================================
-wire [511:0] key_down;
-wire [8:0] last_change;
-wire been_ready;
-
-KeyboardDecoder key_de (
-    .key_down(key_down),
-    .last_change(last_change),
-    .key_valid(been_ready),
-    .PS2_DATA(PS2_DATA),
-    .PS2_CLK(PS2_CLK),
-    .rst(rst),
-    .clk(clk)
-);
-
-// WASD Keycodes
-parameter [8:0] KEY_W = 9'b0_0001_1101; // W
-parameter [8:0] KEY_A = 9'b0_0001_1100; // A
-parameter [8:0] KEY_S = 9'b0_0001_1011; // S
-parameter [8:0] KEY_D = 9'b0_0010_0011; // D
-
-// SHIFT鍵控制模式
-parameter [8:0] LEFT_SHIFT_CODES  = 9'b0_0001_0010;
-parameter [8:0] RIGHT_SHIFT_CODES = 9'b0_0101_1001;
-
-wire shift_down = key_down[LEFT_SHIFT_CODES] | key_down[RIGHT_SHIFT_CODES];
-
-//============================================================
-// VGA 控制器
-//============================================================
+// VGA controller signals
 wire [9:0] h_cnt;
 wire [9:0] v_cnt;
 wire valid;
@@ -208,6 +177,7 @@ speaker_control speaker (
 //============================================================
 reg [9:0] player_x;
 reg [9:0] player_y;
+
 reg [9:0] bullet_x;
 reg [9:0] bullet_y;
 reg bullet_active;
@@ -221,56 +191,65 @@ reg [9:0] enemy_x[MAX_ENEMIES - 1:0];
 reg [9:0] enemy_y[MAX_ENEMIES - 1:0];
 reg enemy_active[MAX_ENEMIES - 1:0];
 
-reg signed [31:0] dx, dy;
-reg [31:0] magnitude;
+// 随机数生成器（伪随机数）
+reg [9:0] random_seed;
 
-parameter CENTER_X = 512;   
-parameter CENTER_Y = 512;  
-parameter DEAD_ZONE = 100; 
-parameter MAX_BULLET_SPEED = 5; 
+
+reg signed [15:0] dx, dy; // 允許負值
+reg [15:0] magnitude;
+
+parameter CENTER_X = 512;  // 搖杆中心X座標
+parameter CENTER_Y = 512;  // 搖杆中心Y座標
+parameter DEAD_ZONE = 100; // 死區範圍
+parameter MAX_BULLET_SPEED = 5; // 子彈最大速度
 
 integer i;
 reg [9:0] LFSR;
 
+// Keyboard interface
+wire [511:0] key_down;
+wire [8:0] last_change;
+wire been_ready;
+
+KeyboardDecoder key_de (
+    .key_down(key_down),
+    .last_change(last_change),
+    .key_valid(been_ready),
+    .PS2_DATA(PS2_DATA),
+    .PS2_CLK(PS2_CLK),
+    .rst(rst),
+    .clk(clk)
+);
+
+// WASD Keycodes
+parameter [8:0] KEY_W = 9'b0_0001_1101; // W key
+parameter [8:0] KEY_A = 9'b0_0001_1100; // A key
+parameter [8:0] KEY_S = 9'b0_0001_1011; // S key
+parameter [8:0] KEY_D = 9'b0_0010_0011; // D key
+
+// Game mode controlled by holding SHIFT key
+wire shift_down = key_down[9'b0_0001_0010] | key_down[9'b0_0101_1001];
+
 // Initialize player position at screen center
 initial begin
-    player_x = 320; // Center of 640 width
-    player_y = 240; // Center of 480 height
+    player_x = 320;
+    player_y = 240;
     bullet_active = 0;
     bullet_dx = 0;
     bullet_dy = -1; // Default upward
+    /*enemy_x = 100; // Initial position of enemy
+    enemy_y = 100;
+    enemy_active = 1;*/
+    //random_seed = 10'b0101010101; // 初始随机种子
     for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
         enemy_x[i] = 0;
         enemy_y[i] = 0;
         enemy_active[i] = 0;
     end
     score = 0; // Initial score is 0
-    bullet_sound_trigger = 0;
 end
 
-//============================================================
-// LFSR 隨機數生成，用於敵人隨機位置
-//============================================================
-always @(posedge clk_1Hz or posedge rst) begin
-    if (rst) begin
-        LFSR <= 10'b1010_0000_00;
-    end else begin
-        LFSR[9] <= LFSR[1];
-        LFSR[8] <= LFSR[4];
-        LFSR[7] <= LFSR[8] ^ LFSR[1];
-        LFSR[6] <= LFSR[7] ^ LFSR[1];
-        LFSR[5] <= LFSR[6];
-        LFSR[4] <= LFSR[5] ^ LFSR[1];
-        LFSR[3] <= LFSR[4];
-        LFSR[2] <= LFSR[3];
-        LFSR[1] <= LFSR[2];
-        LFSR[0] <= LFSR[9];
-    end
-end
-
-//============================================================
-// 玩家位置更新 (WASD 或 搖桿控制)
-//============================================================
+// Update player position based on joystick input, WASD keys, or control mode
 reg prev_key_w, prev_key_a, prev_key_s, prev_key_d;
 always @(posedge clk_25 or posedge rst) begin
     if (rst) begin
@@ -374,10 +353,26 @@ always @(posedge clk_bullet or posedge rst) begin
     end
 end
 
-//============================================================
-// VGA 輸出
-//============================================================
-integer j;
+always @(posedge clk_1Hz or posedge rst) begin
+        if (rst) begin
+            LFSR <= 10'b1010_0000_00; 
+        end else begin
+            LFSR[9] <= LFSR[1];
+            LFSR[8] <= LFSR[4];
+            LFSR[7] <= LFSR[8] ^ LFSR[1];
+            LFSR[6] <= LFSR[7] ^ LFSR[1];
+            LFSR[5] <= LFSR[6];
+            LFSR[4] <= LFSR[5] ^ LFSR[1];
+            LFSR[3] <= LFSR[4];
+            LFSR[2] <= LFSR[3];
+            LFSR[1] <= LFSR[2];
+            LFSR[0] <= LFSR[9];
+        end
+    end
+
+
+
+// VGA output for player, bullet, and enemy
 always @(*) begin
     vgaRed = 4'h0;
     vgaGreen = 4'h0;
@@ -385,21 +380,21 @@ always @(*) begin
     if (valid) begin
         // 玩家
         if (v_cnt >= player_y && v_cnt < player_y + 20 && h_cnt >= player_x && h_cnt < player_x + 20) begin
-            vgaRed = 4'hF;  // Player block in red
+            vgaRed = 4'hF; // Player block in red
             vgaGreen = 4'h0;
             vgaBlue = 4'h0;
         end 
         // 子彈
         else if (bullet_active && v_cnt >= bullet_y && v_cnt < bullet_y + 10 && h_cnt >= bullet_x && h_cnt < bullet_x + 5) begin
             vgaRed = 4'h0;
-            vgaGreen = 4'hF;  // Bullet block in green
+            vgaGreen = 4'hF; // Bullet block in green
             vgaBlue = 4'h0;
         end 
         // 敵人
         else begin
-            for (j = 0; j < MAX_ENEMIES; j = j + 1) begin
-                if (enemy_active[j] && v_cnt >= enemy_y[j] && v_cnt < enemy_y[j] + 20 && h_cnt >= enemy_x[j] && h_cnt < enemy_x[j] + 20) begin
-                    vgaBlue = 4'hF;   // Enemy block in blue
+            for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
+                if (enemy_active[i] && v_cnt >= enemy_y[i] && v_cnt < enemy_y[i] + 20 && h_cnt >= enemy_x[i] && h_cnt < enemy_x[i] + 20) begin
+                    vgaBlue = 4'hF; // Enemy block in blue
                 end
             end
         end
