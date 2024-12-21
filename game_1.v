@@ -7,7 +7,7 @@ module game_top(
     inout wire PS2_CLK,
 	input wire BtnU,
     input wire BtnD,
-    output reg [4:0] LED,
+    output reg [15:0] LED,
     output wire MOSI,
     output wire SCLK,
     output wire SS,
@@ -68,6 +68,13 @@ wire shooter_move_clk;
 clock_divider #(.n(24)) clk_div_shooter(  // 可調整分頻比例
     .clk(clk),
     .clk_div(shooter_move_clk)
+);
+
+// 射击频率控制时钟
+wire shooter_bullet_clk;
+clock_divider #(.n(19)) clk_div_shooter_bullet(  // 可调整分频比例
+    .clk(clk),
+    .clk_div(shooter_bullet_clk)
 );
 
 //============================================================
@@ -175,68 +182,6 @@ reg bullet_sound_trigger;    // 子彈音效觸發
 reg BtnU_pulse, BtnD_pulse;
 reg [3:0] vol_num;
 
-always @ (posedge clk) begin
-    if (rst) begin
-        BtnU_pulse <= 0;
-        BtnD_pulse <= 0;
-    end else begin
-        BtnU_pulse <= BtnU;
-        BtnD_pulse <= BtnD;
-    end
-end
-
-// 音量調整邏輯
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
-        vol_num <= 4'b0011; // 預設音量
-    end else begin
-        if (BtnU && ~BtnU_pulse && vol_num < 5) begin
-            vol_num <= vol_num + 1; // 音量增加
-        end
-        if (BtnD && ~BtnD_pulse && vol_num > 1) begin
-            vol_num <= vol_num - 1; // 音量減少
-        end
-    end
-end
-
-// 音量LED顯示
-always @ (posedge clk or posedge rst) begin
-		if (rst) begin
-			LED[4:0] <= 0;
-		end 
-		else begin
-			case(vol_num)
-			1: LED[4:0] <= 5'b0_0001;
-			2: LED[4:0] <= 5'b0_0011;
-			3: LED[4:0] <= 5'b0_0111;
-			4: LED[4:0] <= 5'b0_1111;
-			5: LED[4:0] <= 5'b1_1111;
-			default: begin			
-				LED[4:0] <= 0;
-			end
-			endcase
-		end
-	end
-
-// 音量LED顯示
-always @ (posedge clk or posedge rst) begin
-		if (rst) begin
-			LED[4:0] <= 0;
-		end 
-		else begin
-			case(vol_num)
-			1: LED[4:0] <= 5'b0_0001;
-			2: LED[4:0] <= 5'b0_0011;
-			3: LED[4:0] <= 5'b0_0111;
-			4: LED[4:0] <= 5'b0_1111;
-			5: LED[4:0] <= 5'b1_1111;
-			default: begin			
-				LED[4:0] <= 0;
-			end
-			endcase
-		end
-	end
-
 // 背景音樂模組
 background_music bgm_inst (
     .clk(clk_1Hz),   
@@ -283,6 +228,71 @@ speaker_control speaker (
     .audio_sdin(audio_sdin)
 );
 
+//============================================================
+// FSM States
+//============================================================
+parameter MENU_IDLE = 3'b000;
+parameter MENU_TUTORIAL = 3'b001;
+parameter GAME_RUNNING = 3'b010;
+parameter GAME_OVER = 3'b011;
+parameter GAME_WIN = 3'b100;
+parameter GAME_PAUSE = 3'b101;
+
+reg [2:0] current_state, next_state;
+reg [2:0] prev_state; // 儲存進入 PAUSE 前的狀態
+reg [1:0] menu_selected; // 0: Start Game, 1: Tutorial
+
+//============================================================
+// 按鈕功能控制邏輯
+//============================================================
+// 中間信號
+reg BtnU_menu, BtnD_menu;       // 控制選單
+reg BtnU_volume, BtnD_volume;   // 控制音量
+
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        BtnU_pulse <= 0;
+        BtnD_pulse <= 0;
+        BtnU_menu <= 0;
+        BtnD_menu <= 0;
+        BtnU_volume <= 0;
+        BtnD_volume <= 0;
+    end else begin
+        // 儲存按鈕的狀態
+        BtnU_pulse <= BtnU;
+        BtnD_pulse <= BtnD;
+
+        // 在不同狀態下分配按鈕功能
+        if (current_state == MENU_IDLE) begin
+            BtnU_menu <= BtnU && ~BtnU_pulse;   // 按下 BtnU 控制選單
+            BtnD_menu <= BtnD && ~BtnD_pulse;   // 按下 BtnD 控制選單
+            BtnU_volume <= 0;                  // 選單時不控制音量
+            BtnD_volume <= 0;
+        end else if (current_state == GAME_RUNNING) begin
+            BtnU_menu <= 0;                    // 遊戲中不控制選單
+            BtnD_menu <= 0;
+            BtnU_volume <= BtnU && ~BtnU_pulse; // 按下 BtnU 增加音量
+            BtnD_volume <= BtnD && ~BtnD_pulse; // 按下 BtnD 減少音量
+        end else begin
+            BtnU_menu <= 0;                    // 其他狀態禁用按鈕功能
+            BtnD_menu <= 0;
+            BtnU_volume <= 0;
+            BtnD_volume <= 0;
+        end
+    end
+end
+
+//============================================================
+// 音量調整邏輯
+//============================================================
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        vol_num <= 4'b0011; // 預設音量
+    end else if (current_state == GAME_RUNNING) begin
+        if (BtnU_volume && vol_num < 5) vol_num <= vol_num + 1; // 音量增加
+        if (BtnD_volume && vol_num > 1) vol_num <= vol_num - 1; // 音量減少
+    end
+end
 
 //============================================================
 // 遊戲參數與變數
@@ -319,10 +329,27 @@ reg shooter_active[MAX_SHOOTERS - 1:0];
 reg signed [4:0] shooter_dx[MAX_SHOOTERS - 1:0];
 reg [MAX_SHOOTERS-1:0] bullet_hit_shooter;  // 新增：用於標記被子彈擊中的射擊部隊
 
+// 在游戏参数部分添加射击部队子弹相关定义
+parameter MAX_SHOOTER_BULLETS = 10;  // 每个射击部队最多可以有的子弹数
+reg [9:0] shooter_bullet_x[MAX_SHOOTERS-1:0][MAX_SHOOTER_BULLETS-1:0];
+reg [9:0] shooter_bullet_y[MAX_SHOOTERS-1:0][MAX_SHOOTER_BULLETS-1:0];
+reg shooter_bullet_active[MAX_SHOOTERS-1:0][MAX_SHOOTER_BULLETS-1:0];
+reg signed [4:0] shooter_bullet_dx[MAX_SHOOTERS-1:0][MAX_SHOOTER_BULLETS-1:0];
+reg signed [4:0] shooter_bullet_dy[MAX_SHOOTERS-1:0][MAX_SHOOTER_BULLETS-1:0];
+// 在遊戲參數部分添加
+reg [4:0] bullet_speed;
+parameter BULLET_BASE_SPEED = 5;  // 基礎子彈速度
 
 reg [7:0] score;
 
 reg [7:0] health;  // 7-bit 可以表示 0-127，足夠表示 50
+// 新增中間信號來處理來自不同來源的生命值減少
+reg [7:0] enemy_damage;      // 敵人造成的傷害
+reg [7:0] bullet_damage;     // 子彈造成的傷害
+reg enemy_hit, bullet_hit_player;
+// 修改射擊部隊的射擊機制
+reg [7:0] shoot_timer [MAX_SHOOTERS-1:0];  // 每個射擊部隊的計時器
+
 reg [MAX_ENEMIES-1:0] enemy_hit_player;  // 用於標記撞到玩家的敵人
 
 reg signed [31:0] dx, dy;
@@ -337,7 +364,7 @@ parameter MAX_BULLET_SPEED = 5;
 reg signed [31:0] normalized_dx, normalized_dy;
 reg [31:0] sqrt_mag;
 
-integer i;
+integer i,j;
 reg [9:0] LFSR;
 
 // 初始值
@@ -359,6 +386,15 @@ initial begin
         shooter_y[i] = 0;
         shooter_active[i] = 0;
         shooter_dx[i] = 0;
+    end
+    for (i = 0; i < MAX_SHOOTERS; i = i + 1) begin
+        for (j = 0; j < MAX_SHOOTER_BULLETS; j = j + 1) begin
+            shooter_bullet_active[i][j] = 0;
+            shooter_bullet_x[i][j] = 0;
+            shooter_bullet_y[i][j] = 0;
+            shooter_bullet_dx[i][j] = 0;
+            shooter_bullet_dy[i][j] = 0;
+        end
     end
     score = 0;
     bullet_sound_trigger = 0;
@@ -431,17 +467,7 @@ always @(posedge clk_25 or posedge rst) begin
     end
 end
 
-//============================================================
-// FSM States
-//============================================================
-parameter MENU_IDLE = 3'b000;
-parameter MENU_TUTORIAL = 3'b001;
-parameter GAME_RUNNING = 3'b010;
-parameter GAME_OVER = 3'b011;
-parameter GAME_WIN = 3'b100;
 
-reg [2:0] current_state, next_state;
-reg [1:0] menu_selected; // 0: Start Game, 1: Tutorial
 
 //============================================================
 // FSM Logic
@@ -470,8 +496,13 @@ always @(*) begin
         end
 
         GAME_RUNNING: begin
-            if (score >= 10) next_state = GAME_WIN; // 分數達到 10，切換到 WIN
-            else next_state = GAME_RUNNING;
+            if (SW[0]) begin
+                next_state = GAME_PAUSE; // SW[0] 觸發 PAUSE 狀態
+            end else if (score >= 10) begin
+                next_state = GAME_WIN; // 分數達到 10，切換到 WIN
+            end else begin
+                next_state = GAME_RUNNING;
+            end
         end
 
         GAME_OVER: begin
@@ -484,8 +515,27 @@ always @(*) begin
             else next_state = GAME_WIN;
         end
 
+        GAME_PAUSE: begin // 新增的 PAUSE 狀態邏輯
+            if (~SW[0]) begin // 關閉 SW[0]，回到之前的狀態
+                next_state = prev_state;
+            end else begin
+                next_state = GAME_PAUSE;
+            end
+        end
+
         default: next_state = MENU_IDLE;
     endcase
+end
+
+//============================================================
+// 儲存進入 PAUSE 前的狀態
+//============================================================
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        prev_state <= MENU_IDLE;
+    end else if (current_state != GAME_PAUSE && next_state == GAME_PAUSE) begin
+        prev_state <= current_state; // 進入 PAUSE 前儲存當前狀態
+    end
 end
 
 //============================================================
@@ -504,6 +554,7 @@ end
 //============================================================
 // 子彈生成與移動、敵人生成與消滅
 //============================================================
+
 always @(posedge clk_bullet or posedge rst) begin
     if (rst) begin
         bullet_active <= 0;
@@ -532,15 +583,14 @@ always @(posedge clk_bullet or posedge rst) begin
             bullet_sound_trigger <= 0;
             bullet_hit_enemy <= 0;
             bullet_hit_shooter <= 0;
-        end else if (joystick_button[0] && !bullet_active && !shift_down) begin
-            /*for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
-            bullet_hit_enemy[i] <= 0;
-        end*/
+        end 
         // 此处改为条件性重置击中标记
         if (bullet_active) begin  // 当子弹不活跃时重置击中标记
             bullet_hit_enemy <= 0;
             bullet_hit_shooter <= 0;
         end
+
+        if (joystick_button[0] && !bullet_active && !shift_down) begin
         // 按下搖桿按鈕(不在shift模式)來發射子彈
             dx = $signed(joystick_x_final) - $signed(CENTER_X);
             dy = $signed(joystick_y_final) - $signed(CENTER_Y);
@@ -579,7 +629,7 @@ always @(posedge clk_bullet or posedge rst) begin
                     bullet_hit_enemy[i] <= 1;
                     bullet_active <= 0;
                     bullet_hit <= 1;
-                    if (score < 8'd9) score <= score + 1; // 達到 10 分會進入 WIN 狀態
+                    if (score < 8'd99) score <= score + 1; // 達到 10 分會進入 WIN 狀態
                 end
             end
 
@@ -629,7 +679,6 @@ always @(posedge enemy_move_clk or posedge rst) begin
             enemy_y[i] <= 0;
             enemy_dx[i] <= 0;
         end
-        health <= 50;
         enemy_hit_player <= 0;
     end else begin
         enemy_hit_player <= 0;  // 重置碰撞標記
@@ -643,11 +692,8 @@ always @(posedge enemy_move_clk or posedge rst) begin
                     enemy_y[i] + 20 >= player_y && enemy_y[i] < player_y + 20) begin
                     enemy_hit_player[i] <= 1;  // 標記撞到玩家
                     enemy_active[i] <= 0;      // 敵人消失
-                    if (health >= 8'd5) begin     // 確保生命值不會變成負數
-                        health <= health - 8'd5;
-                    end else begin
-                        health <= 0;
-                    end
+                    enemy_hit <= 1;
+                    //health <= health - 5; //multiple driver
                 end
                 else begin
                     enemy_x[i] <= enemy_x[i] + enemy_dx[i];
@@ -715,10 +761,177 @@ always @(posedge shooter_move_clk or posedge rst) begin
     end
 end
 
-//=====================
-//For Testing
-//assign LED[5] = enemy_active[0];
-//=====================
+// 添加固定点数除法函数
+function [4:0] fixed_point_div;
+    input [31:0] dx, dy;
+    reg [31:0] abs_dx, abs_dy;
+    begin
+        // 计算绝对值
+        abs_dx = (dx[31]) ? -dx : dx;
+        abs_dy = (dy[31]) ? -dy : dy;
+        
+        // 使用预先计算的比例
+        if (abs_dx > abs_dy) begin
+            fixed_point_div = 5'd5; // 最大速度
+        end else if (abs_dx == abs_dy) begin
+            fixed_point_div = 5'd4; // 对角线速度
+        end else begin
+            fixed_point_div = 5'd3; // 较小速度
+        end
+    end
+endfunction
+
+// 修改射擊部隊子彈生成的邏輯
+always @(posedge shooter_bullet_clk or posedge rst) begin
+    if (rst) begin
+        for (i = 0; i < MAX_SHOOTERS; i = i + 1) begin
+            shoot_timer[i] <= 0;
+            for (j = 0; j < MAX_SHOOTER_BULLETS; j = j + 1) begin
+                shooter_bullet_active[i][j] <= 0;
+                shooter_bullet_x[i][j] <= 0;
+                shooter_bullet_y[i][j] <= 0;
+                shooter_bullet_dx[i][j] <= 0;
+                shooter_bullet_dy[i][j] <= 0;
+            end
+        end
+    end else begin
+        // 每個活躍的射擊部隊都嘗試發射子彈
+        for (i = 0; i < MAX_SHOOTERS; i = i + 1) begin
+            if (shooter_active[i]) begin
+                // 增加計時器
+                shoot_timer[i] <= shoot_timer[i] + 1;
+                
+                // 每隔一定時間發射子彈（可調整間隔）
+                if (shoot_timer[i] >= 8'd20) begin  // 調整這個數值可以改變射擊頻率
+                    shoot_timer[i] <= 0;  // 重置計時器
+
+                    // 尋找空閒的子彈槽
+                    for (j = 0; j < MAX_SHOOTER_BULLETS; j = j + 1) begin
+                        if (!shooter_bullet_active[i][j]) begin
+                            // 發射新子彈
+                            shooter_bullet_active[i][j] <= 1;
+                            shooter_bullet_x[i][j] <= shooter_x[i] + 10;
+                            shooter_bullet_y[i][j] <= shooter_y[i] + 10;
+
+                            // 計算目標方向（瞄準玩家當前位置）
+                            dx = $signed(player_x - shooter_x[i]);
+                            dy = $signed(player_y - shooter_y[i]);
+
+                            // 计算速度分量（参考玩家子弹逻辑）
+                            magnitude = (dx*dx + dy*dy) >> 8;
+                            
+                            if (magnitude > 0) begin
+                                shooter_bullet_active[i][j] <= 1;
+                                shooter_bullet_x[i][j] <= shooter_x[i] + 10;
+                                shooter_bullet_y[i][j] <= shooter_y[i] + 10;
+
+                                // 设置速度分量
+                                if (dx > 0)
+                                    shooter_bullet_dx[i][j] <= (dx * 5) >> 9;
+                                else
+                                    shooter_bullet_dx[i][j] <= -(-dx * 5) >> 9;
+                                
+                                if (dy > 0)
+                                    shooter_bullet_dy[i][j] <= (dy * 5) >> 9;
+                                else
+                                    shooter_bullet_dy[i][j] <= -(-dy * 5) >> 9;
+                            end
+                        end
+                    end
+                end
+            end else begin
+                shoot_timer[i] <= 0;  // 重置非活躍射擊部隊的計時器
+            end
+        end
+
+        // 更新所有活躍子彈的位置
+        for (i = 0; i < MAX_SHOOTERS; i = i + 1) begin
+            for (j = 0; j < MAX_SHOOTER_BULLETS; j = j + 1) begin
+                if (shooter_bullet_active[i][j]) begin
+                    // 移動子彈（線性路徑）
+                    shooter_bullet_x[i][j] <= shooter_bullet_x[i][j] + shooter_bullet_dx[i][j];
+                    shooter_bullet_y[i][j] <= shooter_bullet_y[i][j] + shooter_bullet_dy[i][j];
+
+                    // 檢查是否擊中玩家
+                    if (shooter_bullet_x[i][j] + 5 >= player_x && 
+                        shooter_bullet_x[i][j] < player_x + 20 &&
+                        shooter_bullet_y[i][j] + 5 >= player_y && 
+                        shooter_bullet_y[i][j] < player_y + 20) begin
+                        shooter_bullet_active[i][j] <= 0;
+                        health <= health - 2;
+                    end
+                    // 檢查是否離開螢幕
+                    else if (shooter_bullet_x[i][j] < 5 || shooter_bullet_x[i][j] > 635 ||
+                            shooter_bullet_y[i][j] < 5 || shooter_bullet_y[i][j] > 475) begin
+                        shooter_bullet_active[i][j] <= 0;
+                    end
+                end
+            end
+        end
+    end
+end
+
+//============================================================
+// LED控制整合邏輯
+//============================================================
+// LED 閃爍控制
+reg [1:0] blink_state; // 0: 全暗, 1: 全亮
+reg [3:0] blink_count; // 閃爍計數器 (0~6)
+reg blink_enable;      // 啟用閃爍控制
+reg [15:0] led_next;   // LED 中間信號
+
+always @(posedge clk_1Hz or posedge rst) begin
+    if (rst) begin
+        blink_state <= 0;       // 預設全暗
+        blink_count <= 0;       // 重置閃爍計數
+        blink_enable <= 0;      // 停止閃爍
+        led_next <= 16'b0000_0000_0000_0000; // 全暗
+    end else if (current_state == GAME_WIN) begin
+        // GAME_WIN 狀態下執行 LED 閃爍
+        if (!blink_enable) begin
+            blink_enable <= 1;  // 啟用閃爍
+            blink_count <= 0;   // 重置計數
+        end else if (blink_count < 6) begin
+            // 控制 LED 全亮或全暗 (每次閃爍切換一次)
+            if (blink_state == 0) begin
+                led_next <= 16'b1111_1111_1111_1111; // 全亮
+                blink_state <= 1;
+            end else begin
+                led_next <= 16'b0000_0000_0000_0000; // 全暗
+                blink_state <= 0;
+                blink_count <= blink_count + 1; // 增加閃爍計數
+            end
+        end else begin
+            // 閃爍完成，關閉 LED
+            led_next <= 16'b0000_0000_0000_0000;    // 全暗
+            blink_enable <= 0;  // 停止閃爍
+        end
+    end else if (current_state == GAME_RUNNING || current_state == GAME_PAUSE) begin
+        // GAME_RUNNING 狀態下顯示音量
+        case (vol_num)
+            1: led_next <= 16'b0000_0000_0000_0001;
+            2: led_next <= 16'b0000_0000_0000_0011;
+            3: led_next <= 16'b0000_0000_0000_0111;
+            4: led_next <= 16'b0000_0000_0000_1111;
+            5: led_next <= 16'b0000_0000_0001_1111;
+            default: led_next <= 16'b0000_0000_0000_0000;
+        endcase
+    end else begin
+        // 其他狀態下，保持 LED 全暗
+        led_next <= 16'b0000_0000_0000_0000;
+        blink_enable <= 0;
+    end
+end
+
+// 實際 LED 賦值邏輯
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        LED <= 16'b0000_0000_0000_0000;
+    end else begin
+        LED <= led_next;
+    end
+end
+
 
 //============================================================
 // 七段顯示器 (Score 與 搖桿座標切換)
@@ -726,19 +939,6 @@ end
 // SW[0] = 1, SW[1] = 1 顯示 x_bcd
 // SW[0] = 1, SW[1] = 0 顯示 y_bcd
 //============================================================
-//wire [15:0] score_bcd = {4'hF,4'hF,score[7:4],score[3:0]};
-/*wire [15:0] bcd = {health[7:4],health[3:0],score[7:4],score[3:0]};
-wire [15:0] nums_to_display = (SW[0] == 1'b0) ? bcd :
-                              (SW[1] == 1'b1) ? x_bcd : y_bcd;
-
-SevenSegment m1(
-    .display(display), 
-    .digit(digit), 
-    .nums(nums_to_display),
-    .rst(rst), 
-    .clk(clk)
-);*/
-
 // 將health和score組合成一個16位的nums
 wire [15:0] game_status;
 // 根據switch選擇顯示內容
@@ -768,6 +968,13 @@ always @(*) begin
         score_ones <= score % 10;    // 取個位數
     end
 end
+// 修改生命值顯示計算
+/*always @(*) begin
+    health_tens = health / 10;  // 直接計算十位數
+    health_ones = health % 10;  // 直接計算個位數
+    score_tens = score / 10;    // 計算分數十位數
+    score_ones = score % 10;    // 計算分數個位數
+end*/
 
 // 最後組合成16位數字
 assign game_status = {health_tens, health_ones, score_tens, score_ones};
@@ -783,16 +990,18 @@ SevenSegment m1(
 //============================================================
 // VGA 輸出
 //============================================================
-integer j,e;
+integer e;
 wire start_pixel;
 wire tu_menu_pixel;
 wire tutorial_pixel;
 wire win_pixel;
+wire pause_pixel;
 
 wire [16:0] menu_start_addr      = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
 wire [16:0] menu_tutorial_addr   = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
 wire [16:0] tutorial_screen_addr = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
 wire [16:0] win_addr             = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
+wire [16:0] pause_addr           = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
 
 blk_mem_gen_0 menu_start (
     .clka(clk_25),
@@ -824,6 +1033,14 @@ blk_mem_gen_3 win_image (
     .addra((win_addr < 76800) ? win_addr : 17'd0),
     .dina(0),
     .douta(win_pixel)
+);
+
+blk_mem_gen_4 pause_image (
+    .clka(clk_25),
+    .wea(1'b0),
+    .addra((pause_addr < 76800) ? pause_addr : 17'd0),
+    .dina(0),
+    .douta(pause_pixel)
 );
 
 // VGA Rendering Logic
@@ -901,6 +1118,19 @@ always @(*) begin
                 // 3) Enemies
                 else begin
                     // 預設先維持黑色
+                    // 檢查是否有射擊部隊的子彈在當前像素位置
+                    for (e = 0; e < MAX_SHOOTERS; e = e + 1) begin
+                        for (j = 0; j < MAX_SHOOTER_BULLETS; j = j + 1) begin
+                            if (shooter_bullet_active[e][j] &&
+                                v_cnt >= shooter_bullet_y[e][j] && v_cnt < shooter_bullet_y[e][j] + 5 &&
+                                h_cnt >= shooter_bullet_x[e][j] && h_cnt < shooter_bullet_x[e][j] + 5) begin
+                                // 黃色子彈
+                                vgaRed = 4'hF;
+                                vgaGreen = 4'hF;
+                                vgaBlue = 4'h0;
+                            end
+                        end
+                    end
                     for (e = 0; e < MAX_ENEMIES; e = e + 1) begin
                         if (enemy_active[e] &&
                             (v_cnt >= enemy_y[e]) && (v_cnt < enemy_y[e] + 20) &&
@@ -940,6 +1170,19 @@ always @(*) begin
             GAME_WIN: begin
                 if (win_addr < 76800) begin
                     if (win_pixel == 1'b1) begin
+                        vgaRed   = 4'hF;
+                        vgaGreen = 4'hF;
+                        vgaBlue  = 4'hF;
+                    end
+                end
+            end
+
+            //----------------------------------------
+            // 狀態 6: GAME_PAUSE
+            //----------------------------------------
+            GAME_PAUSE: begin
+                if (pause_addr < 76800) begin
+                    if (pause_pixel == 1'b1) begin
                         vgaRed   = 4'hF;
                         vgaGreen = 4'hF;
                         vgaBlue  = 4'hF;
