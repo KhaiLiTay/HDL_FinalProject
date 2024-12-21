@@ -67,49 +67,6 @@ PmodJSTK jstk_inst(
     .DOUT(joystick_data)
 );
 
-// Keyboard interface
-/*wire [511:0] key_down;
-wire [8:0] last_change;
-wire been_ready;
-
-// WASD Keycodes
-parameter [8:0] KEY_W = 9'b0_0001_1101; // W key
-parameter [8:0] KEY_A = 9'b0_0001_1100; // A key
-parameter [8:0] KEY_S = 9'b0_0001_1011; // S key
-parameter [8:0] KEY_D = 9'b0_0010_0011; // D key
-parameter [8:0] LEFT_SHIFT_CODES  = 9'b0_0001_0010;
-parameter [8:0] RIGHT_SHIFT_CODES = 9'b0_0101_1001;
-
-wire shift_down;
-// Game mode controlled by holding SHIFT key
-assign shift_down = (key_down[LEFT_SHIFT_CODES] == 1'b1 || key_down[RIGHT_SHIFT_CODES] == 1'b1) ? 1'b1 : 1'b0;
-
-
-KeyboardDecoder key_de (
-    .key_down(key_down),
-    .last_change(last_change),
-    .key_valid(been_ready),
-    .PS2_DATA(PS2_DATA),
-    .PS2_CLK(PS2_CLK),
-    .rst(rst),
-    .clk(clk)
-);
-
-always @ (posedge clk, posedge rst) begin
-		if (rst) begin
-			LED[0] <= 1'b0;
-            LED[1] <= 1'b0;
-		end else begin
-			if (been_ready && key_down[last_change] == 1'b1) begin
-					if (shift_down == 1'b1) begin
-						LED[0] <= 1'b1;
-					end else begin
-						LED[1] <= 1'b1;
-					end
-				end
-			end
-	end*/
-
 
 
 // Extract joystick components
@@ -243,6 +200,12 @@ parameter MAX_BULLET_SPEED = 5; // 子彈最大速度
 integer i;
 reg [9:0] LFSR;
 
+// 在參數區域添加敵人速度參數
+parameter ENEMY_SPEED = 2;  // 敵人移動速度
+// 在 reg 宣告區域添加敵人移動相關的寄存器
+reg signed [9:0] enemy_dx[MAX_ENEMIES - 1:0];  // 敵人 X 方向速度
+reg signed [9:0] enemy_dy[MAX_ENEMIES - 1:0];  // 敵人 Y 方向速度
+
 // Initialize player position at screen center
 initial begin
     player_x = 320; // Center of 640 width
@@ -254,6 +217,8 @@ initial begin
         enemy_x[i] = 0;
         enemy_y[i] = 0;
         enemy_active[i] = 0;
+        enemy_dx[i] = 0;
+        enemy_dy[i] = 0;
     end
     score = 0; // Initial score is 0
 end
@@ -281,6 +246,10 @@ always @(posedge clk_bullet or posedge rst) begin
         bullet_hit <= 0;
         for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
             enemy_active[i] <= 0;
+            enemy_x[i] <= 0;
+            enemy_y[i] <= 0;
+            enemy_dx[i] <= 0;
+            enemy_dy[i] <= 0;
         end
         score <= 0; // Reset score
         bullet_sound_trigger <= 0; // 重置音效觸發信號
@@ -322,15 +291,34 @@ always @(posedge clk_bullet or posedge rst) begin
         end else begin
             bullet_active <= 0;
         end
+        // 檢查子彈和敵人碰撞
         for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
-            if (enemy_active[i] &&
-                bullet_x + 5 >= enemy_x[i] && bullet_x < enemy_x[i] + 20 &&
-                bullet_y + 10 >= enemy_y[i] && bullet_y < enemy_y[i] + 20) begin
-                enemy_active[i] <= 0; // 敌人消失
-                bullet_active <= 0; // 子弹消失
-                bullet_hit <= 1;
-                if (score <= 8'd99) begin  // 確保分數不會超過99
-                    score <= score + 1; // 每次得分加10
+            if (enemy_active[i]) begin
+                if (bullet_x + 5 >= enemy_x[i] && bullet_x < enemy_x[i] + 20 &&
+                    bullet_y + 10 >= enemy_y[i] && bullet_y < enemy_y[i] + 20) begin
+                    enemy_active[i] <= 0;
+                    bullet_active <= 0;
+                    bullet_hit <= 1;
+                    if (score <= 8'd99) score <= score + 1;
+                end else begin
+                    // 敵人移動邏輯
+                    dx = $signed(player_x) - $signed(enemy_x[i]);
+                    dy = $signed(player_y) - $signed(enemy_y[i]);
+                    
+                    // 更新敵人方向
+                    if (dx > 0) enemy_dx[i] <= ENEMY_SPEED;
+                    else if (dx < 0) enemy_dx[i] <= -ENEMY_SPEED;
+                    else enemy_dx[i] <= 0;
+                    
+                    if (dy > 0) enemy_dy[i] <= ENEMY_SPEED;
+                    else if (dy < 0) enemy_dy[i] <= -ENEMY_SPEED;
+                    else enemy_dy[i] <= 0;
+
+                    // 更新敵人位置
+                    if (enemy_x[i] + enemy_dx[i] >= 0 && enemy_x[i] + enemy_dx[i] < 640)
+                        enemy_x[i] <= enemy_x[i] + enemy_dx[i];
+                    if (enemy_y[i] + enemy_dy[i] >= 0 && enemy_y[i] + enemy_dy[i] < 480)
+                        enemy_y[i] <= enemy_y[i] + enemy_dy[i];
                 end
             end
         end

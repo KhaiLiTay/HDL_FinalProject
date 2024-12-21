@@ -51,6 +51,13 @@ clock_divider #(.n(20)) clk_div_bullet(
     .clk_div(clk_bullet)
 );
 
+// 新增敵人移動時鐘
+wire clk_enemy;
+clock_divider #(.n(23)) clk_div_enemy(  // 可以調整 n 的值來改變敵人移動速度
+    .clk(clk),
+    .clk_div(clk_enemy)
+);
+
 //============================================================
 // Pmod JSTK (搖桿) Interface
 //============================================================
@@ -220,8 +227,11 @@ reg [9:0] enemy_x[MAX_ENEMIES - 1:0];
 reg [9:0] enemy_y[MAX_ENEMIES - 1:0];
 reg enemy_active[MAX_ENEMIES - 1:0];
 
-// 随机数生成器（伪随机数）
-reg [9:0] random_seed;
+// 在參數區域添加敵人速度參數
+parameter ENEMY_SPEED = 2;  // 敵人移動速度
+// 在 reg 宣告區域添加敵人移動相關的寄存器
+reg signed [9:0] enemy_dx[MAX_ENEMIES - 1:0];  // 敵人 X 方向速度
+reg signed [9:0] enemy_dy[MAX_ENEMIES - 1:0];  // 敵人 Y 方向速度
 
 
 reg signed [15:0] dx, dy; // 允許負值
@@ -246,6 +256,8 @@ initial begin
         enemy_x[i] = 0;
         enemy_y[i] = 0;
         enemy_active[i] = 0;
+        enemy_dx[i] = 0;
+        enemy_dy[i] = 0;
     end
     score = 0; // Initial score is 0
     bullet_sound_trigger = 0;
@@ -377,6 +389,7 @@ always @(posedge clk_bullet or posedge rst) begin
         end
     end
 end
+
 
 //============================================================
 // VGA 輸出
