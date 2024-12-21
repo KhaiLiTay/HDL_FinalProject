@@ -5,7 +5,9 @@ module game_top(
     input wire [2:0] SW,
     inout wire PS2_DATA,
     inout wire PS2_CLK,
-    output reg [2:0] LED,           // 可自行使用
+	input wire BtnU,
+    input wire BtnD,
+    output reg [4:0] LED,
     output wire MOSI,
     output wire SCLK,
     output wire SS,
@@ -51,12 +53,74 @@ clock_divider #(.n(20)) clk_div_bullet(
     .clk_div(clk_bullet)
 );
 
-// 新增敵人移動時鐘
-wire clk_enemy;
-clock_divider #(.n(23)) clk_div_enemy(  // 可以調整 n 的值來改變敵人移動速度
-    .clk(clk),
-    .clk_div(clk_enemy)
-);
+//============================================================
+// FSM States
+//============================================================
+parameter MENU_IDLE = 3'b000;
+parameter MENU_TUTORIAL = 3'b001;
+parameter GAME_RUNNING = 3'b010;
+parameter GAME_OVER = 3'b011;
+parameter GAME_WIN = 3'b100;
+
+reg [2:0] current_state, next_state;
+reg [1:0] menu_selected; // 0: Start Game, 1: Tutorial
+
+//============================================================
+// FSM Logic
+//============================================================
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        current_state <= MENU_IDLE;
+    end else begin
+        current_state <= next_state;
+    end
+end
+
+always @(*) begin
+    case (current_state)
+        MENU_IDLE: begin
+            if (joystick_button[0]) begin
+                if (menu_selected == 0) next_state = GAME_RUNNING;
+                else if (menu_selected == 1) next_state = MENU_TUTORIAL;
+                else next_state = MENU_IDLE;
+            end else next_state = MENU_IDLE;
+        end
+        
+        MENU_TUTORIAL: begin
+            if (joystick_button[1]) next_state = MENU_IDLE; // 回到選單
+            else next_state = MENU_TUTORIAL;
+        end
+
+        GAME_RUNNING: begin
+            if (score >= 10) next_state = GAME_WIN; // 分數達到 10，切換到 WIN
+            else next_state = GAME_RUNNING;
+        end
+
+        GAME_OVER: begin
+            if (joystick_button[2]) next_state = MENU_IDLE;
+            else next_state = GAME_OVER;
+        end
+
+        GAME_WIN: begin
+            if (joystick_button[2]) next_state = MENU_IDLE; // 回到主選單
+            else next_state = GAME_WIN;
+        end
+
+        default: next_state = MENU_IDLE;
+    endcase
+end
+
+//============================================================
+// Menu Selection Logic
+//============================================================
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        menu_selected <= 0;
+    end else if (current_state == MENU_IDLE) begin
+        if (BtnU && menu_selected > 0) menu_selected <= menu_selected - 1;
+        else if (BtnD && menu_selected < 1) menu_selected <= menu_selected + 1;
+    end
+end
 
 //============================================================
 // Pmod JSTK (搖桿) Interface
@@ -106,14 +170,6 @@ Binary_To_BCD y_converter(
 // 將 BCD 轉回 16 位二進位數值
 wire [15:0] joystick_x_final = (x_bcd[15:12] * 16'd1000) + (x_bcd[11:8] * 16'd100) + (x_bcd[7:4] * 16'd10) + x_bcd[3:0];
 wire [15:0] joystick_y_final = (y_bcd[15:12] * 16'd1000) + (y_bcd[11:8] * 16'd100) + (y_bcd[7:4] * 16'd10) + y_bcd[3:0];
-
-//============================================================
-// 七段顯示器 (Score)
-//============================================================
-reg [7:0] score;
-wire [15:0] nums;
-assign nums = {4'hF, 4'hF, score[7:4], score[3:0]};
-SevenSegment m1(.display(display), .digit(digit), .nums(nums), .rst(rst), .clk(clk));
 
 //============================================================
 // Keyboard Interface
@@ -168,27 +224,79 @@ wire [15:0] audio_in_left, audio_in_right; // 背景音樂音訊
 wire [15:0] bullet_audio;    // 子彈音效
 reg bullet_sound_trigger;    // 子彈音效觸發
 
+reg BtnU_pulse, BtnD_pulse;
+reg [3:0] vol_num;
+
+always @ (posedge clk) begin
+    if (rst) begin
+        BtnU_pulse <= 0;
+        BtnD_pulse <= 0;
+    end else begin
+        BtnU_pulse <= BtnU;
+        BtnD_pulse <= BtnD;
+    end
+end
+
+// 音量調整邏輯
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        vol_num <= 4'b0011; // 預設音量
+    end else begin
+        if (BtnU && ~BtnU_pulse && vol_num < 5) begin
+            vol_num <= vol_num + 1; // 音量增加
+        end
+        if (BtnD && ~BtnD_pulse && vol_num > 1) begin
+            vol_num <= vol_num - 1; // 音量減少
+        end
+    end
+end
+
+// 音量LED顯示
+always @ (posedge clk or posedge rst) begin
+		if (rst) begin
+			LED[4:0] <= 0;
+		end 
+		else begin
+			case(vol_num)
+			1: LED[4:0] <= 5'b0_0001;
+			2: LED[4:0] <= 5'b0_0011;
+			3: LED[4:0] <= 5'b0_0111;
+			4: LED[4:0] <= 5'b0_1111;
+			5: LED[4:0] <= 5'b1_1111;
+			default: begin			
+				LED[4:0] <= 0;
+			end
+			endcase
+		end
+	end
+
+// 背景音樂模組
 background_music bgm_inst (
     .clk(clk_1Hz),   
     .rst(rst),
     .note_div(music_note_div)
 );
 
+// 音頻控制模組 (支援音量調整)
 buzzer_control music_gen (
     .clk(clk),
     .rst(rst),
     .note_div(music_note_div),    
     .audio_left(audio_in_left),  
     .audio_right(audio_in_right),
-    .vol_num(3'b011)
+    .vol_num(vol_num) // 音量調整輸入
 );
 
+// 音頻輸出模組
+
 bullet_sound bullet_sound_inst (
-    .clk(clk),              
-    .rst(rst),              
-    .trigger(bullet_sound_trigger), 
-    .audio(bullet_audio)    
+    .clk(clk),               // 系統時鐘
+    .rst(rst),               // 重置信號
+    .trigger(bullet_sound_trigger), // 音效觸發
+    .vol_num(vol_num),       // 音量控制
+    .audio(bullet_audio)     // 音效輸出
 );
+
 
 wire [15:0] mixed_audio;
 audio_mixer audio_mixer_inst (
@@ -227,39 +335,32 @@ reg [9:0] enemy_x[MAX_ENEMIES - 1:0];
 reg [9:0] enemy_y[MAX_ENEMIES - 1:0];
 reg enemy_active[MAX_ENEMIES - 1:0];
 
-// 在參數區域添加敵人速度參數
-parameter ENEMY_SPEED = 2;  // 敵人移動速度
-// 在 reg 宣告區域添加敵人移動相關的寄存器
-reg signed [9:0] enemy_dx[MAX_ENEMIES - 1:0];  // 敵人 X 方向速度
-reg signed [9:0] enemy_dy[MAX_ENEMIES - 1:0];  // 敵人 Y 方向速度
+reg [7:0] score;
 
+reg signed [31:0] dx, dy;
+reg [31:0] magnitude;
 
-reg signed [15:0] dx, dy; // 允許負值
-reg [15:0] magnitude;
-
-parameter CENTER_X = 512;  // 搖杆中心X座標
-parameter CENTER_Y = 512;  // 搖杆中心Y座標
-parameter DEAD_ZONE = 100; // 死區範圍
-parameter MAX_BULLET_SPEED = 5; // 子彈最大速度
+parameter CENTER_X = 512;  
+parameter CENTER_Y = 512;  
+parameter DEAD_ZONE = 100; 
+parameter MAX_BULLET_SPEED = 5; 
 
 integer i;
 reg [9:0] LFSR;
 
-// Initialize player position at screen center
+// 初始值
 initial begin
     player_x = 320;
     player_y = 240;
     bullet_active = 0;
     bullet_dx = 0;
-    bullet_dy = -1; // Default upward
+    bullet_dy = -1;
     for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
         enemy_x[i] = 0;
         enemy_y[i] = 0;
         enemy_active[i] = 0;
-        enemy_dx[i] = 0;
-        enemy_dy[i] = 0;
     end
-    score = 0; // Initial score is 0
+    score = 0;
     bullet_sound_trigger = 0;
 end
 
@@ -286,7 +387,6 @@ end
 //============================================================
 // 玩家位置更新 (WASD 或 搖桿控制)
 //============================================================
-// Update player position based on joystick input, WASD keys, or control mode
 reg prev_key_w, prev_key_a, prev_key_s, prev_key_d;
 always @(posedge clk_25 or posedge rst) begin
     if (rst) begin
@@ -336,8 +436,21 @@ always @(posedge clk_bullet or posedge rst) begin
             enemy_active[i] <= 0;
         end
     end else begin
-        // 按下搖桿按鈕(不在shift模式)來發射子彈
-        if (joystick_button[0] && !bullet_active && !shift_down) begin
+        // 如果進入 WIN 狀態，重置分數與相關變數
+        if (current_state == GAME_WIN) begin
+            bullet_active <= 0;
+            bullet_x <= 0;
+            bullet_y <= 0;
+            bullet_dx <= 0;
+            bullet_dy <= 0;
+            bullet_hit <= 0;
+            score <= 0; // 分數重置
+            bullet_sound_trigger <= 0;
+            for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
+                enemy_active[i] <= 0;
+            end
+        end else if (joystick_button[0] && !bullet_active && !shift_down) begin
+            // 按下搖桿按鈕(不在shift模式)來發射子彈
             dx = $signed(joystick_x_final) - $signed(CENTER_X);
             dy = $signed(joystick_y_final) - $signed(CENTER_Y);
 
@@ -373,7 +486,7 @@ always @(posedge clk_bullet or posedge rst) begin
                     enemy_active[i] <= 0;
                     bullet_active <= 0;
                     bullet_hit <= 1;
-                    if (score < 8'd99) score <= score + 1;
+                    if (score < 8'd9) score <= score + 1; // 達到 10 分會進入 WIN 狀態
                 end
             end
         end else begin
@@ -392,35 +505,188 @@ end
 
 
 //============================================================
+// 七段顯示器 (Score 與 搖桿座標切換)
+// SW[0] = 0 顯示 Score
+// SW[0] = 1, SW[1] = 1 顯示 x_bcd
+// SW[0] = 1, SW[1] = 0 顯示 y_bcd
+//============================================================
+wire [15:0] score_bcd = {4'hF,4'hF,score[7:4],score[3:0]};
+wire [15:0] nums_to_display = (current_state == GAME_WIN) ? 16'h0000 : 
+                              (SW[0] == 1'b0) ? score_bcd :
+                              (SW[1] == 1'b1) ? x_bcd : y_bcd;
+
+
+SevenSegment m1(
+    .display(display), 
+    .digit(digit), 
+    .nums(nums_to_display),
+    .rst(rst), 
+    .clk(clk)
+);
+
+//============================================================
 // VGA 輸出
 //============================================================
-// VGA output for player, bullet, and enemy
+integer j,e;
+wire start_pixel;
+wire tu_menu_pixel;
+wire tutorial_pixel;
+wire win_pixel;
+
+wire [16:0] menu_start_addr      = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
+wire [16:0] menu_tutorial_addr   = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
+wire [16:0] tutorial_screen_addr = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
+wire [16:0] win_addr             = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
+
+blk_mem_gen_0 menu_start (
+    .clka(clk_25),
+    .wea(1'b0),
+    .addra((menu_start_addr < 76800) ? menu_start_addr : 17'd0),
+    .dina(0),
+    .douta(start_pixel)
+);
+
+blk_mem_gen_1 menu_tutorial (
+    .clka(clk_25),
+    .wea(1'b0),
+    .addra((menu_tutorial_addr < 76800) ? menu_tutorial_addr : 17'd0),
+    .dina(0),
+    .douta(tu_menu_pixel)
+);
+
+blk_mem_gen_2 tutorial_screen (
+    .clka(clk_25),
+    .wea(1'b0),
+    .addra((tutorial_screen_addr < 76800) ? tutorial_screen_addr : 17'd0),
+    .dina(0),
+    .douta(tutorial_pixel)
+);
+
+blk_mem_gen_3 win_image (
+    .clka(clk_25),
+    .wea(1'b0),
+    .addra((win_addr < 76800) ? win_addr : 17'd0),
+    .dina(0),
+    .douta(win_pixel)
+);
+
+// VGA Rendering Logic
 always @(*) begin
-    vgaRed = 4'h0;
+    // 先預設背景 = 黑
+    vgaRed   = 4'h0;
     vgaGreen = 4'h0;
-    vgaBlue = 4'h0;
-    if (valid) begin
-        // 玩家
-        if (v_cnt >= player_y && v_cnt < player_y + 20 && h_cnt >= player_x && h_cnt < player_x + 20) begin
-            vgaRed = 4'hF; // Player block in red
-            vgaGreen = 4'h0;
-            vgaBlue = 4'h0;
-        end 
-        // 子彈
-        else if (bullet_active && v_cnt >= bullet_y && v_cnt < bullet_y + 10 && h_cnt >= bullet_x && h_cnt < bullet_x + 5) begin
-            vgaRed = 4'h0;
-            vgaGreen = 4'hF; // Bullet block in green
-            vgaBlue = 4'h0;
-        end 
-        // 敵人
-        else begin
-            for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
-                if (enemy_active[i] && v_cnt >= enemy_y[i] && v_cnt < enemy_y[i] + 20 && h_cnt >= enemy_x[i] && h_cnt < enemy_x[i] + 20) begin
-                    vgaBlue = 4'hF; // Enemy block in blue
+    vgaBlue  = 4'h0;
+
+    // 確保只在有效掃描區域(640×480)內進行繪圖
+    if (valid && (h_cnt < 640) && (v_cnt < 480)) begin
+        case (current_state)
+
+            //----------------------------------------
+            // 狀態 1: MENU_IDLE
+            //----------------------------------------
+            MENU_IDLE: begin
+                // 顯示不同圖片來對應選單 (Start / Tutorial)
+                // 此處只會顯示被選到的圖片 (根據您原本程式的寫法)
+                if (menu_start_addr < 76800 && menu_selected == 0) begin
+                    // 若此像素在 BRAM 中為 1，顯示白色
+                    if (start_pixel == 1'b1) begin
+                        vgaRed   = 4'hF;
+                        vgaGreen = 4'hF;
+                        vgaBlue  = 4'hF;
+                    end
+                end
+                else if (menu_tutorial_addr < 76800 && menu_selected == 1) begin
+                    if (tu_menu_pixel == 1'b1) begin
+                        vgaRed   = 4'hF;
+                        vgaGreen = 4'hF;
+                        vgaBlue  = 4'hF;
+                    end
                 end
             end
-        end
+
+            //----------------------------------------
+            // 狀態 2: MENU_TUTORIAL
+            //----------------------------------------
+            MENU_TUTORIAL: begin
+                // 顯示 Tutorial 大圖
+                if (tutorial_screen_addr < 76800) begin
+                    if (tutorial_pixel == 1'b1) begin
+                        vgaRed   = 4'hF;
+                        vgaGreen = 4'hF;
+                        vgaBlue  = 4'hF;
+                    end
+                end
+            end
+
+            //----------------------------------------
+            // 狀態 3: GAME_RUNNING
+            //----------------------------------------
+            GAME_RUNNING: begin
+                // 先保留背景 = 黑
+                // 再依序判斷座標，畫 Player, Bullet, Enemies
+
+                // 1) Player
+                if ((v_cnt >= player_y) && (v_cnt < player_y + 20) &&
+                    (h_cnt >= player_x) && (h_cnt < player_x + 20))
+                begin
+                    // 顯示紅色方塊
+                    vgaRed = 4'hF; 
+                end
+
+                // 2) Bullet
+                else if (bullet_active &&
+                         (v_cnt >= bullet_y) && (v_cnt < bullet_y + 10) &&
+                         (h_cnt >= bullet_x) && (h_cnt < bullet_x + 5))
+                begin
+                    // 顯示綠色子彈
+                    vgaGreen = 4'hF;
+                end
+
+                // 3) Enemies
+                else begin
+                    // 預設先維持黑色
+                    for (e = 0; e < MAX_ENEMIES; e = e + 1) begin
+                        if (enemy_active[e] &&
+                            (v_cnt >= enemy_y[e]) && (v_cnt < enemy_y[e] + 20) &&
+                            (h_cnt >= enemy_x[e]) && (h_cnt < enemy_x[e] + 20))
+                        begin
+                            // 顯示藍色方塊
+                            vgaBlue = 4'hF;
+                        end
+                    end
+                end
+            end
+
+            //----------------------------------------
+            // 狀態 4: GAME_OVER
+            //----------------------------------------
+            GAME_OVER: begin
+                // 簡單以藍色區塊示意 Game Over 畫面
+                if ((v_cnt >= 100) && (v_cnt < 200) &&
+                    (h_cnt >= 100) && (h_cnt < 500))
+                begin
+                    vgaBlue = 4'hF;
+                end
+            end
+
+            //----------------------------------------
+            // 狀態 5: GAME_WIN
+            //----------------------------------------
+            GAME_WIN: begin
+                if (win_addr < 76800) begin
+                    if (win_pixel == 1'b1) begin
+                        vgaRed   = 4'hF;
+                        vgaGreen = 4'hF;
+                        vgaBlue  = 4'hF;
+                    end
+                end
+            end
+
+
+            default: ; // 其他狀態預設黑
+        endcase
     end
 end
+
 
 endmodule
