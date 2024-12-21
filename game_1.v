@@ -69,74 +69,6 @@ clock_divider #(.n(24)) clk_div_shooter(  // 可調整分頻比例
     .clk(clk),
     .clk_div(shooter_move_clk)
 );
-//============================================================
-// FSM States
-//============================================================
-parameter MENU_IDLE = 3'b000;
-parameter MENU_TUTORIAL = 3'b001;
-parameter GAME_RUNNING = 3'b010;
-parameter GAME_OVER = 3'b011;
-parameter GAME_WIN = 3'b100;
-
-reg [2:0] current_state, next_state;
-reg [1:0] menu_selected; // 0: Start Game, 1: Tutorial
-
-//============================================================
-// FSM Logic
-//============================================================
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
-        current_state <= MENU_IDLE;
-    end else begin
-        current_state <= next_state;
-    end
-end
-
-always @(*) begin
-    case (current_state)
-        MENU_IDLE: begin
-            if (joystick_button[0]) begin
-                if (menu_selected == 0) next_state = GAME_RUNNING;
-                else if (menu_selected == 1) next_state = MENU_TUTORIAL;
-                else next_state = MENU_IDLE;
-            end else next_state = MENU_IDLE;
-        end
-        
-        MENU_TUTORIAL: begin
-            if (joystick_button[1]) next_state = MENU_IDLE; // 回到選單
-            else next_state = MENU_TUTORIAL;
-        end
-
-        GAME_RUNNING: begin
-            if (score >= 10) next_state = GAME_WIN; // 分數達到 10，切換到 WIN
-            else next_state = GAME_RUNNING;
-        end
-
-        GAME_OVER: begin
-            if (joystick_button[2]) next_state = MENU_IDLE;
-            else next_state = GAME_OVER;
-        end
-
-        GAME_WIN: begin
-            if (joystick_button[2]) next_state = MENU_IDLE; // 回到主選單
-            else next_state = GAME_WIN;
-        end
-
-        default: next_state = MENU_IDLE;
-    endcase
-end
-
-//============================================================
-// Menu Selection Logic
-//============================================================
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
-        menu_selected <= 0;
-    end else if (current_state == MENU_IDLE) begin
-        if (BtnU && menu_selected > 0) menu_selected <= menu_selected - 1;
-        else if (BtnD && menu_selected < 1) menu_selected <= menu_selected + 1;
-    end
-end
 
 //============================================================
 // Pmod JSTK (搖桿) Interface
@@ -286,34 +218,6 @@ always @ (posedge clk or posedge rst) begin
 		end
 	end
 
-// 背景音樂模組
-reg BtnU_pulse, BtnD_pulse;
-reg [3:0] vol_num;
-
-always @ (posedge clk) begin
-    if (rst) begin
-        BtnU_pulse <= 0;
-        BtnD_pulse <= 0;
-    end else begin
-        BtnU_pulse <= BtnU;
-        BtnD_pulse <= BtnD;
-    end
-end
-
-// 音量調整邏輯
-always @(posedge clk or posedge rst) begin
-    if (rst) begin
-        vol_num <= 4'b0011; // 預設音量
-    end else begin
-        if (BtnU && ~BtnU_pulse && vol_num < 5) begin
-            vol_num <= vol_num + 1; // 音量增加
-        end
-        if (BtnD && ~BtnD_pulse && vol_num > 1) begin
-            vol_num <= vol_num - 1; // 音量減少
-        end
-    end
-end
-
 // 音量LED顯示
 always @ (posedge clk or posedge rst) begin
 		if (rst) begin
@@ -378,6 +282,7 @@ speaker_control speaker (
     .audio_sck(audio_sck),
     .audio_sdin(audio_sdin)
 );
+
 
 //============================================================
 // 遊戲參數與變數
@@ -527,6 +432,76 @@ always @(posedge clk_25 or posedge rst) begin
 end
 
 //============================================================
+// FSM States
+//============================================================
+parameter MENU_IDLE = 3'b000;
+parameter MENU_TUTORIAL = 3'b001;
+parameter GAME_RUNNING = 3'b010;
+parameter GAME_OVER = 3'b011;
+parameter GAME_WIN = 3'b100;
+
+reg [2:0] current_state, next_state;
+reg [1:0] menu_selected; // 0: Start Game, 1: Tutorial
+
+//============================================================
+// FSM Logic
+//============================================================
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        current_state <= MENU_IDLE;
+    end else begin
+        current_state <= next_state;
+    end
+end
+
+always @(*) begin
+    case (current_state)
+        MENU_IDLE: begin
+            if (joystick_button[0]) begin
+                if (menu_selected == 0) next_state = GAME_RUNNING;
+                else if (menu_selected == 1) next_state = MENU_TUTORIAL;
+                else next_state = MENU_IDLE;
+            end else next_state = MENU_IDLE;
+        end
+        
+        MENU_TUTORIAL: begin
+            if (joystick_button[1]) next_state = MENU_IDLE; // 回到選單
+            else next_state = MENU_TUTORIAL;
+        end
+
+        GAME_RUNNING: begin
+            if (score >= 10) next_state = GAME_WIN; // 分數達到 10，切換到 WIN
+            else next_state = GAME_RUNNING;
+        end
+
+        GAME_OVER: begin
+            if (joystick_button[2]) next_state = MENU_IDLE;
+            else next_state = GAME_OVER;
+        end
+
+        GAME_WIN: begin
+            if (joystick_button[2]) next_state = MENU_IDLE; // 回到主選單
+            else next_state = GAME_WIN;
+        end
+
+        default: next_state = MENU_IDLE;
+    endcase
+end
+
+//============================================================
+// Menu Selection Logic
+//============================================================
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        menu_selected <= 0;
+    end else if (current_state == MENU_IDLE) begin
+        if (BtnU && menu_selected > 0) menu_selected <= menu_selected - 1;
+        else if (BtnD && menu_selected < 1) menu_selected <= menu_selected + 1;
+    end
+end
+
+
+//============================================================
 // 子彈生成與移動、敵人生成與消滅
 //============================================================
 always @(posedge clk_bullet or posedge rst) begin
@@ -555,9 +530,8 @@ always @(posedge clk_bullet or posedge rst) begin
             bullet_hit <= 0;
             score <= 0; // 分數重置
             bullet_sound_trigger <= 0;
-            for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
-                enemy_active[i] <= 0;
-            end
+            bullet_hit_enemy <= 0;
+            bullet_hit_shooter <= 0;
         end else if (joystick_button[0] && !bullet_active && !shift_down) begin
             /*for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
             bullet_hit_enemy[i] <= 0;
@@ -934,6 +908,15 @@ always @(*) begin
                         begin
                             // 顯示藍色方塊
                             vgaBlue = 4'hF;
+                        end
+                    end
+                    for (e = 0; e < MAX_SHOOTERS; e = e + 1) begin
+                        if (shooter_active[e] &&
+                            (v_cnt >= shooter_y[e]) && (v_cnt < shooter_y[e] + 20) &&
+                            (h_cnt >= shooter_x[e]) && (h_cnt < shooter_x[e] + 20))
+                        begin
+                            vgaRed = 4'hF;    // 橘色 = 紅色 + 綠色
+                            vgaGreen = 4'h8;
                         end
                     end
                 end
