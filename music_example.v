@@ -1,28 +1,166 @@
 module background_music(
     input wire clk,          // 系統時鐘
     input wire rst,          // 重置信號
-    output reg [21:0] note_div // 輸出當前音符的分頻值
+    input wire [1:0] mode,   // 音樂模式: 00=一般, 01=勝利, 10=輸掉
+    output reg [21:0] note_div // 音符分頻值
 );
-    reg [2:0] note_index;    // 音階索引
+    reg [4:0] note_index;    // 音符索引
+    reg [23:0] counter;      // 音符播放計數器
+    parameter DURATION = 24'd5000000; // 每個音符的播放時間
+
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            note_index <= 3'b000; // 從 do 開始
+            note_index <= 5'b00000;
+            counter <= 24'd0;
         end else begin
-            note_index <= (note_index == 3'b110) ? 3'b000 : note_index + 1'b1; // 循環 do 到 si
+            if (counter < DURATION) begin
+                counter <= counter + 1;
+            end else begin
+                counter <= 24'd0;
+                note_index <= (note_index == 5'd31) ? 5'b00000 : note_index + 1'b1;
+            end
         end
     end
 
-    // 根據索引選擇對應音階的分頻值
+    // 根據模式和索引輸出對應旋律
     always @(*) begin
-        case (note_index)
-            3'b000: note_div = 22'd191571; // do
-            3'b001: note_div = 22'd170068; // re
-            3'b010: note_div = 22'd151515; // mi
-            3'b011: note_div = 22'd142857; // fa
-            3'b100: note_div = 22'd127551; // so
-            3'b101: note_div = 22'd113636; // la
-            3'b110: note_div = 22'd101214; // si
-            default: note_div = 22'd0;     // 無音
+        case (mode)
+            2'b00: begin // 一般狀態音樂
+                case (note_index)
+                    // 第一小節
+                    5'd0: note_div = 22'd127551; // so
+                    5'd1: note_div = 22'd113636; // la
+                    5'd2: note_div = 22'd127551; // so
+                    5'd3: note_div = 22'd142857; // fa
+                    // 第二小節
+                    5'd4: note_div = 22'd151515; // mi
+                    5'd5: note_div = 22'd142857; // fa
+                    5'd6: note_div = 22'd127551; // so
+                    5'd7: note_div = 22'd127551; // so
+                    // 第三小節
+                    5'd8: note_div = 22'd170068; // re
+                    5'd9: note_div = 22'd151515; // mi
+                    5'd10: note_div = 22'd142857; // fa
+                    5'd11: note_div = 22'd142857; // fa
+                    // 第四小節
+                    5'd12: note_div = 22'd151515; // mi
+                    5'd13: note_div = 22'd142857; // fa
+                    5'd14: note_div = 22'd127551; // so
+                    5'd15: note_div = 22'd127551; // so
+                    // 第五小節
+                    5'd16: note_div = 22'd127551; // so
+                    5'd17: note_div = 22'd113636; // la
+                    5'd18: note_div = 22'd127551; // so
+                    5'd19: note_div = 22'd142857; // fa
+                    // 第六小節
+                    5'd20: note_div = 22'd151515; // mi
+                    5'd21: note_div = 22'd142857; // fa
+                    5'd22: note_div = 22'd127551; // so
+                    5'd23: note_div = 22'd127551; // so
+                    // 第七小節
+                    5'd24: note_div = 22'd170068; // re
+                    5'd25: note_div = 22'd170068; // re
+                    5'd26: note_div = 22'd127551; // so
+                    5'd27: note_div = 22'd127551; // so
+                    // 第八小節
+                    5'd28: note_div = 22'd151515; // mi
+                    5'd29: note_div = 22'd191571; // do
+                    5'd30: note_div = 22'd191571; // do
+                    5'd31: note_div = 22'd191571; // do
+                    default: note_div = 22'd0;
+                endcase
+            end
+            2'b01: begin // 勝利音樂
+                case (note_index)
+                    // 第一小節
+                    5'd0: note_div = 22'd151515; // mi
+                    5'd1: note_div = 22'd151515; // mi
+                    5'd2: note_div = 22'd142857; // fa
+                    5'd3: note_div = 22'd127551; // so
+                    // 第二小節
+                    5'd4: note_div = 22'd127551; // so
+                    5'd5: note_div = 22'd142857; // fa
+                    5'd6: note_div = 22'd151515; // mi
+                    5'd7: note_div = 22'd170068; // re
+                    // 第三小節
+                    5'd8: note_div = 22'd191571; // do
+                    5'd9: note_div = 22'd191571; // do
+                    5'd10: note_div = 22'd170068; // re
+                    5'd11: note_div = 22'd151515; // mi
+                    // 第四小節
+                    5'd12: note_div = 22'd151515; // mi
+                    5'd13: note_div = 22'd151515; // mi
+                    5'd14: note_div = 22'd170068; // re
+                    5'd15: note_div = 22'd170068; // re
+                    // 第五小節
+                    5'd16: note_div = 22'd151515; // mi
+                    5'd17: note_div = 22'd151515; // mi
+                    5'd18: note_div = 22'd142857; // fa
+                    5'd19: note_div = 22'd127551; // so
+                    // 第六小節
+                    5'd20: note_div = 22'd127551; // so
+                    5'd21: note_div = 22'd142857; // fa
+                    5'd22: note_div = 22'd151515; // mi
+                    5'd23: note_div = 22'd170068; // re
+                    // 第七小節
+                    5'd24: note_div = 22'd191571; // do
+                    5'd25: note_div = 22'd191571; // do
+                    5'd26: note_div = 22'd170068; // re
+                    5'd27: note_div = 22'd151515; // mi
+                    // 第八小節
+                    5'd28: note_div = 22'd170068; // re
+                    5'd29: note_div = 22'd170068; // re
+                    5'd30: note_div = 22'd191571; // do
+                    5'd31: note_div = 22'd191571; // do
+                    default: note_div = 22'd0;
+            endcase
+        end
+            2'b10: begin // 輸掉音樂
+                case (note_index)
+                    // 第一小節
+                    5'd0: note_div = 22'd151515; // mi
+                    5'd1: note_div = 22'd170068; // re
+                    5'd2: note_div = 22'd191571; // do
+                    5'd3: note_div = 22'd191571; // do
+                    // 第二小節
+                    5'd4: note_div = 22'd170068; // re
+                    5'd5: note_div = 22'd151515; // mi
+                    5'd6: note_div = 22'd142857; // fa
+                    5'd7: note_div = 22'd127551; // so
+                    // 第三小節
+                    5'd8: note_div = 22'd151515; // mi
+                    5'd9: note_div = 22'd142857; // fa
+                    5'd10: note_div = 22'd127551; // so
+                    5'd11: note_div = 22'd142857; // fa
+                    // 第四小節
+                    5'd12: note_div = 22'd170068; // re
+                    5'd13: note_div = 22'd151515; // mi
+                    5'd14: note_div = 22'd191571; // do
+                    5'd15: note_div = 22'd191571; // do
+                    // 第五小節
+                    5'd16: note_div = 22'd151515; // mi
+                    5'd17: note_div = 22'd170068; // re
+                    5'd18: note_div = 22'd191571; // do
+                    5'd19: note_div = 22'd191571; // do
+                    // 第六小節
+                    5'd20: note_div = 22'd170068; // re
+                    5'd21: note_div = 22'd151515; // mi
+                    5'd22: note_div = 22'd142857; // fa
+                    5'd23: note_div = 22'd151515; // mi
+                    // 第七小節
+                    5'd24: note_div = 22'd170068; // re
+                    5'd25: note_div = 22'd191571; // do
+                    5'd26: note_div = 22'd101214; // ti
+                    5'd27: note_div = 22'd113636; // la
+                    // 第八小節
+                    5'd28: note_div = 22'd191571; // do
+                    5'd29: note_div = 22'd170068; // re
+                    5'd30: note_div = 22'd151515; // mi
+                    5'd31: note_div = 22'd191571; // do
+                    default: note_div = 22'd0; // 停頓
+                endcase
+            end
+            default: note_div = 22'd0;
         endcase
     end
 endmodule
