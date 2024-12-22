@@ -172,6 +172,21 @@ vga_controller vga_inst(
 );
 
 //============================================================
+// FSM States
+//============================================================
+parameter MENU_IDLE = 3'b000;
+parameter MENU_TUTORIAL = 3'b001;
+parameter GAME_RUNNING = 3'b010;
+parameter GAME_OVER = 3'b011;
+parameter GAME_WIN = 3'b100;
+parameter GAME_PAUSE = 3'b101;
+parameter GAME_LOSE = 3'b110;
+
+reg [2:0] current_state, next_state;
+reg [2:0] prev_state; // 儲存進入 PAUSE 前的狀態
+reg [1:0] menu_selected; // 0: Start Game, 1: Tutorial
+
+//============================================================
 // 音樂與音效
 //============================================================
 wire [21:0] music_note_div;
@@ -182,10 +197,26 @@ reg bullet_sound_trigger;    // 子彈音效觸發
 reg BtnU_pulse, BtnD_pulse;
 reg [3:0] vol_num;
 
+// 新增音樂模式信號
+reg [1:0] music_mode;
+
+// 根據 FSM 狀態設定音樂模式
+always @(*) begin
+    case (current_state)
+        MENU_IDLE: music_mode = 2'b00; // 一般背景音樂
+        GAME_RUNNING: music_mode = 2'b00; // 一般背景音樂
+        GAME_WIN: music_mode = 2'b01; // 勝利音樂
+        GAME_LOSE: music_mode = 2'b10; // 輸掉音樂
+        default: music_mode = 2'b00; // 默認為一般背景音樂
+    endcase
+end
+
 // 背景音樂模組
+// 修改背景音樂模組實例化
 background_music bgm_inst (
     .clk(clk_1Hz),   
     .rst(rst),
+    .mode(music_mode), // 新增音樂模式信號
     .note_div(music_note_div)
 );
 
@@ -227,20 +258,6 @@ speaker_control speaker (
     .audio_sck(audio_sck),
     .audio_sdin(audio_sdin)
 );
-
-//============================================================
-// FSM States
-//============================================================
-parameter MENU_IDLE = 3'b000;
-parameter MENU_TUTORIAL = 3'b001;
-parameter GAME_RUNNING = 3'b010;
-parameter GAME_OVER = 3'b011;
-parameter GAME_WIN = 3'b100;
-parameter GAME_PAUSE = 3'b101;
-
-reg [2:0] current_state, next_state;
-reg [2:0] prev_state; // 儲存進入 PAUSE 前的狀態
-reg [1:0] menu_selected; // 0: Start Game, 1: Tutorial
 
 //============================================================
 // 按鈕功能控制邏輯
@@ -500,6 +517,8 @@ always @(*) begin
                 next_state = GAME_PAUSE; // SW[0] 觸發 PAUSE 狀態
             end else if (score >= 10) begin
                 next_state = GAME_WIN; // 分數達到 10，切換到 WIN
+            end else if (health == 0) begin // 當生命值為0時觸發LOSE
+                next_state = GAME_LOSE;
             end else begin
                 next_state = GAME_RUNNING;
             end
@@ -513,6 +532,11 @@ always @(*) begin
         GAME_WIN: begin
             if (joystick_button[2]) next_state = MENU_IDLE; // 回到主選單
             else next_state = GAME_WIN;
+        end
+        
+        GAME_LOSE: begin // LOSE狀態
+            if (joystick_button[2]) next_state = MENU_IDLE; // 按按鈕返回主選單
+            else next_state = GAME_LOSE;
         end
 
         GAME_PAUSE: begin // 新增的 PAUSE 狀態邏輯
@@ -934,16 +958,10 @@ end
 
 
 //============================================================
-// 七段顯示器 (Score 與 搖桿座標切換)
-// SW[0] = 0 顯示 Score
-// SW[0] = 1, SW[1] = 1 顯示 x_bcd
-// SW[0] = 1, SW[1] = 0 顯示 y_bcd
+// 七段顯示器 (Score)
 //============================================================
-// 將health和score組合成一個16位的nums
 wire [15:0] game_status;
-// 根據switch選擇顯示內容
-wire [15:0] nums_to_display = (SW[0] == 1'b0) ? game_status :
-                              (SW[1] == 1'b1) ? x_bcd : y_bcd;
+wire [15:0] nums_to_display = (current_state == GAME_WIN) ? 16'h0000 : game_status;
 
 // 當score改變時，我們需要更新最後兩位數字
 // 例如，score = 12 時，最後兩位要顯示12
@@ -995,14 +1013,70 @@ wire start_pixel;
 wire tu_menu_pixel;
 wire tutorial_pixel;
 wire win_pixel;
+wire lose_pixel;
 wire pause_pixel;
 
-wire [16:0] menu_start_addr      = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
-wire [16:0] menu_tutorial_addr   = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
-wire [16:0] tutorial_screen_addr = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
-wire [16:0] win_addr             = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
-wire [16:0] pause_addr           = ((v_cnt >> 1) * 320) + (h_cnt >> 1);
+wire [16:0] menu_start_addr;
+wire [16:0] menu_tutorial_addr;
+wire [16:0] tutorial_screen_addr;
+wire [16:0] win_addr;
+wire [16:0] lose_addr;
+wire [16:0] pause_addr;
 
+//============================================================
+// 導入 mem_addr_gen 用於圖片地址生成
+//============================================================
+mem_addr_gen menu_start_gen (
+    .clk(clk_25),
+    .rst(rst),
+    .h_cnt(h_cnt),
+    .v_cnt(v_cnt),
+    .pixel_addr(menu_start_addr)
+);
+
+mem_addr_gen menu_tutorial_gen (
+    .clk(clk_25),
+    .rst(rst),
+    .h_cnt(h_cnt),
+    .v_cnt(v_cnt),
+    .pixel_addr(menu_tutorial_addr)
+);
+
+mem_addr_gen tutorial_screen_gen (
+    .clk(clk_25),
+    .rst(rst),
+    .h_cnt(h_cnt),
+    .v_cnt(v_cnt),
+    .pixel_addr(tutorial_screen_addr)
+);
+
+mem_addr_gen win_gen (
+    .clk(clk_25),
+    .rst(rst),
+    .h_cnt(h_cnt),
+    .v_cnt(v_cnt),
+    .pixel_addr(win_addr)
+);
+
+mem_addr_gen lose_gen (
+    .clk(clk_25),
+    .rst(rst),
+    .h_cnt(h_cnt),
+    .v_cnt(v_cnt),
+    .pixel_addr(lose_addr)
+);
+
+mem_addr_gen pause_gen (
+    .clk(clk_25),
+    .rst(rst),
+    .h_cnt(h_cnt),
+    .v_cnt(v_cnt),
+    .pixel_addr(pause_addr)
+);
+
+//============================================================
+// BRAM 讀取圖片資料
+//============================================================
 blk_mem_gen_0 menu_start (
     .clka(clk_25),
     .wea(1'b0),
@@ -1043,7 +1117,17 @@ blk_mem_gen_4 pause_image (
     .douta(pause_pixel)
 );
 
+blk_mem_gen_5 lose_image (
+    .clka(clk_25),
+    .wea(1'b0),
+    .addra((lose_addr < 76800) ? lose_addr : 17'd0),
+    .dina(0),
+    .douta(lose_pixel)
+);
+
+//============================================================
 // VGA Rendering Logic
+//============================================================
 always @(*) begin
     // 先預設背景 = 黑
     vgaRed   = 4'h0;
@@ -1059,21 +1143,16 @@ always @(*) begin
             //----------------------------------------
             MENU_IDLE: begin
                 // 顯示不同圖片來對應選單 (Start / Tutorial)
-                // 此處只會顯示被選到的圖片 (根據您原本程式的寫法)
-                if (menu_start_addr < 76800 && menu_selected == 0) begin
-                    // 若此像素在 BRAM 中為 1，顯示白色
-                    if (start_pixel == 1'b1) begin
-                        vgaRed   = 4'hF;
-                        vgaGreen = 4'hF;
-                        vgaBlue  = 4'hF;
-                    end
+                // 此處只會顯示被選到的圖片 (menu_selected)
+                if (menu_selected == 0 && start_pixel == 1'b1) begin
+                    vgaRed   = 4'hF;
+                    vgaGreen = 4'hF;
+                    vgaBlue  = 4'hF;
                 end
-                else if (menu_tutorial_addr < 76800 && menu_selected == 1) begin
-                    if (tu_menu_pixel == 1'b1) begin
-                        vgaRed   = 4'hF;
-                        vgaGreen = 4'hF;
-                        vgaBlue  = 4'hF;
-                    end
+                else if (menu_selected == 1 && tu_menu_pixel == 1'b1) begin
+                    vgaRed   = 4'hF;
+                    vgaGreen = 4'hF;
+                    vgaBlue  = 4'hF;
                 end
             end
 
@@ -1082,12 +1161,10 @@ always @(*) begin
             //----------------------------------------
             MENU_TUTORIAL: begin
                 // 顯示 Tutorial 大圖
-                if (tutorial_screen_addr < 76800) begin
-                    if (tutorial_pixel == 1'b1) begin
-                        vgaRed   = 4'hF;
-                        vgaGreen = 4'hF;
-                        vgaBlue  = 4'hF;
-                    end
+                if (tutorial_pixel == 1'b1) begin
+                    vgaRed   = 4'hF;
+                    vgaGreen = 4'hF;
+                    vgaBlue  = 4'hF;
                 end
             end
 
@@ -1168,12 +1245,10 @@ always @(*) begin
             // 狀態 5: GAME_WIN
             //----------------------------------------
             GAME_WIN: begin
-                if (win_addr < 76800) begin
-                    if (win_pixel == 1'b1) begin
-                        vgaRed   = 4'hF;
-                        vgaGreen = 4'hF;
-                        vgaBlue  = 4'hF;
-                    end
+                if (win_pixel == 1'b1) begin
+                    vgaRed   = 4'hF;
+                    vgaGreen = 4'hF;
+                    vgaBlue  = 4'hF;
                 end
             end
 
@@ -1181,20 +1256,38 @@ always @(*) begin
             // 狀態 6: GAME_PAUSE
             //----------------------------------------
             GAME_PAUSE: begin
-                if (pause_addr < 76800) begin
-                    if (pause_pixel == 1'b1) begin
-                        vgaRed   = 4'hF;
-                        vgaGreen = 4'hF;
-                        vgaBlue  = 4'hF;
-                    end
+                if (pause_pixel == 1'b1) begin
+                    vgaRed   = 4'hF;
+                    vgaGreen = 4'hF;
+                    vgaBlue  = 4'hF;
                 end
             end
-
+            
+            //----------------------------------------
+            // 狀態 7: GAME_LOSE
+            //----------------------------------------
+            GAME_LOSE: begin
+                if (lose_pixel == 1'b1) begin
+                    vgaRed   = 4'hF;
+                    vgaGreen = 4'hF;
+                    vgaBlue  = 4'hF;
+                end
+            end
 
             default: ; // 其他狀態預設黑
         endcase
     end
 end
 
+endmodule
 
+module mem_addr_gen(
+    input clk,
+    input rst,
+    input [9:0] h_cnt,
+    input [9:0] v_cnt,
+    output [16:0] pixel_addr
+);
+    // 單純生成像素地址，對應 320x240 的縮小版圖像
+    assign pixel_addr = ((h_cnt >> 1) + 320 * (v_cnt >> 1)) % 76800; // 640x480 -> 320x240
 endmodule
