@@ -362,7 +362,7 @@ reg [7:0] score;
 reg [7:0] health;  // 7-bit 可以表示 0-127，足夠表示 50
 // 新增中間信號來處理來自不同來源的生命值減少
 reg [7:0] enemy_damage;      // 敵人造成的傷害
-reg [7:0] bullet_damage;     // 子彈造成的傷害
+reg [7:0] shooter_damage;     // 子彈造成的傷害
 reg enemy_hit, bullet_hit_player;
 // 修改射擊部隊的射擊機制
 reg [7:0] shoot_timer [MAX_SHOOTERS-1:0];  // 每個射擊部隊的計時器
