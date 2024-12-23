@@ -72,9 +72,16 @@ clock_divider #(.n(24)) clk_div_shooter(  // 可調整分頻比例
 
 // 射击频率控制时钟
 wire shooter_bullet_clk;
-clock_divider #(.n(19)) clk_div_shooter_bullet(  // 可调整分频比例
+clock_divider #(.n(23)) clk_div_shooter_bullet(  // 可调整分频比例
     .clk(clk),
     .clk_div(shooter_bullet_clk)
+);
+
+// 在 Clock Dividers 區塊加入
+wire health_update_clk;
+clock_divider #(.n(23)) clk_div_health(
+    .clk(clk),
+    .clk_div(health_update_clk)
 );
 
 //============================================================
@@ -363,11 +370,12 @@ reg [7:0] health;  // 7-bit 可以表示 0-127，足夠表示 50
 // 新增中間信號來處理來自不同來源的生命值減少
 reg [7:0] enemy_damage;      // 敵人造成的傷害
 reg [7:0] shooter_damage;     // 子彈造成的傷害
-reg enemy_hit, bullet_hit_player;
+reg enemy_hit;
 // 修改射擊部隊的射擊機制
 reg [7:0] shoot_timer [MAX_SHOOTERS-1:0];  // 每個射擊部隊的計時器
 
 reg [MAX_ENEMIES-1:0] enemy_hit_player;  // 用於標記撞到玩家的敵人
+reg [MAX_SHOOTER_BULLETS*MAX_SHOOTERS-1:0] bullet_hit_player [MAX_SHOOTERS-1:0][MAX_SHOOTER_BULLETS-1:0];  // 用來標記哪顆子彈擊中玩家
 
 reg signed [31:0] dx, dy;
 reg [31:0] magnitude;
@@ -411,6 +419,7 @@ initial begin
             shooter_bullet_y[i][j] = 0;
             shooter_bullet_dx[i][j] = 0;
             shooter_bullet_dy[i][j] = 0;
+            bullet_hit_player[i][j] = 0;
         end
     end
     score = 0;
@@ -418,6 +427,44 @@ initial begin
     health = 50;  // 設置初始生命值為50
     enemy_hit_player = 0;
 end
+
+// =============================
+// health
+// 生命值更新邏輯
+// 生命值更新邏輯
+reg [7:0] damage_count; // Declare damage_count
+
+always @(posedge health_update_clk or posedge rst) begin
+    if (rst) begin
+        health <= 50;  // 重置生命值為初始值
+    end 
+    else if (current_state == GAME_RUNNING) begin
+        // 檢查是否與一般敵人碰撞
+        for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
+            if (enemy_hit_player[i]) begin
+                if (health >= 5) begin
+                    health <= health - 5;  // 每個普通敵人造成5點傷害
+                end else begin
+                    health <= 0;
+                end
+            end
+        end
+        
+        // 檢查所有子彈碰撞
+        for (i = 0; i < MAX_SHOOTERS; i = i + 1) begin
+            for (j = 0; j < MAX_SHOOTER_BULLETS; j = j + 1) begin
+                if (bullet_hit_player[i][j]) begin
+                    if (health >= 2) begin
+                        health <= health - 2;  // 每個普通敵人造成5點傷害
+                    end else begin
+                        health <= 0;
+                    end
+                end
+            end
+        end
+    end
+end
+// =============================
 
 //============================================================
 // LFSR 隨機數生成，用於敵人隨機位置
@@ -769,7 +816,7 @@ always @(posedge shooter_move_clk or posedge rst) begin
                 end
             end 
             else begin  // 生成新的射擊部隊
-                if (!shooter_active[i] && LFSR[2:0] == 3'b111) begin  // 降低生成機率
+                if (!shooter_active[i] && LFSR[0]) begin  // 降低生成機率
                     if (LFSR[0]) begin
                         shooter_x[i] <= -20;
                         shooter_dx[i] <= ENEMY_SPEED;
@@ -785,26 +832,6 @@ always @(posedge shooter_move_clk or posedge rst) begin
     end
 end
 
-// 添加固定点数除法函数
-function [4:0] fixed_point_div;
-    input [31:0] dx, dy;
-    reg [31:0] abs_dx, abs_dy;
-    begin
-        // 计算绝对值
-        abs_dx = (dx[31]) ? -dx : dx;
-        abs_dy = (dy[31]) ? -dy : dy;
-        
-        // 使用预先计算的比例
-        if (abs_dx > abs_dy) begin
-            fixed_point_div = 5'd5; // 最大速度
-        end else if (abs_dx == abs_dy) begin
-            fixed_point_div = 5'd4; // 对角线速度
-        end else begin
-            fixed_point_div = 5'd3; // 较小速度
-        end
-    end
-endfunction
-
 // 修改射擊部隊子彈生成的邏輯
 always @(posedge shooter_bullet_clk or posedge rst) begin
     if (rst) begin
@@ -816,9 +843,15 @@ always @(posedge shooter_bullet_clk or posedge rst) begin
                 shooter_bullet_y[i][j] <= 0;
                 shooter_bullet_dx[i][j] <= 0;
                 shooter_bullet_dy[i][j] <= 0;
+                bullet_hit_player[i][j] <= 0;
             end
         end
     end else if (current_state == GAME_RUNNING) begin
+        for (i = 0; i < MAX_SHOOTERS; i = i + 1) begin
+            for (j = 0; j < MAX_SHOOTER_BULLETS; j = j + 1) begin
+                bullet_hit_player[i][j] <= 0;
+            end
+        end
         // 每個活躍的射擊部隊都嘗試發射子彈
         for (i = 0; i < MAX_SHOOTERS; i = i + 1) begin
             if (shooter_active[i]) begin
@@ -826,41 +859,71 @@ always @(posedge shooter_bullet_clk or posedge rst) begin
                 shoot_timer[i] <= shoot_timer[i] + 1;
                 
                 // 每隔一定時間發射子彈（可調整間隔）
-                if (shoot_timer[i] >= 8'd20) begin  // 調整這個數值可以改變射擊頻率
+                if (shoot_timer[i] >= 8'd2) begin  // 調整這個數值可以改變射擊頻率
                     shoot_timer[i] <= 0;  // 重置計時器
 
                     // 尋找空閒的子彈槽
                     for (j = 0; j < MAX_SHOOTER_BULLETS; j = j + 1) begin
+                        // 修改射击部队子弹生成的逻辑
                         if (!shooter_bullet_active[i][j]) begin
-                            // 發射新子彈
+                            // 计算子弹到玩家的相对位置向量
+                            dx = $signed(player_x) - $signed(shooter_x[i]);
+                            dy = $signed(player_y) - $signed(shooter_y[i]);
+
+                            // 根据射击部队的位置调整子弹初始位置
+                            if (shooter_y[i] >= 400) begin
+                                // 射击部队在顶部
+                                shooter_bullet_x[i][j] <= shooter_x[i]; // 子弹水平初始位置对齐射击部队
+                                shooter_bullet_y[i][j] <= shooter_y[i] + 10; // 子弹生成在射击部队下方
+                                if (dy <= 0) dy = -dy; // 确保向下攻击时 dy 为正
+                            end else begin
+                                // 射击部队在底部
+                                shooter_bullet_x[i][j] <= shooter_x[i]; // 子弹水平初始位置对齐射击部队
+                                shooter_bullet_y[i][j] <= shooter_y[i] - 10; // 子弹生成在射击部队上方
+                                if (dy >= 0) dy = -dy; // 确保向上攻击时 dy 为负
+                            end
+
+                            // 激活子弹
                             shooter_bullet_active[i][j] <= 1;
-                            shooter_bullet_x[i][j] <= shooter_x[i] + 10;
-                            shooter_bullet_y[i][j] <= shooter_y[i] + 10;
 
-                            // 計算目標方向（瞄準玩家當前位置）
-                            dx = $signed(player_x - shooter_x[i]);
-                            dy = $signed(player_y - shooter_y[i]);
-
-                            // 计算速度分量（参考玩家子弹逻辑）
-                            magnitude = (dx*dx + dy*dy) >> 8;
-                            
+                            // 保持方向性的速度计算（归一化方向矢量）
+                            magnitude = (dx * dx + dy * dy) >> 8; // 计算近似平方根
                             if (magnitude > 0) begin
-                                shooter_bullet_active[i][j] <= 1;
-                                shooter_bullet_x[i][j] <= shooter_x[i] + 10;
-                                shooter_bullet_y[i][j] <= shooter_y[i] + 10;
-
-                                // 设置速度分量
-                                if (dx > 0)
-                                    shooter_bullet_dx[i][j] <= (dx * 5) >> 9;
-                                else
-                                    shooter_bullet_dx[i][j] <= -(-dx * 5) >> 9;
-                                
-                                if (dy > 0)
-                                    shooter_bullet_dy[i][j] <= (dy * 5) >> 9;
-                                else
-                                    shooter_bullet_dy[i][j] <= -(-dy * 5) >> 9;
+                                shooter_bullet_dx[i][j] <= (dx * MAX_BULLET_SPEED) / magnitude;
+                                shooter_bullet_dy[i][j] <= (dy * MAX_BULLET_SPEED) / magnitude;
+                            end else begin
+                                shooter_bullet_dx[i][j] <= 0;
+                                shooter_bullet_dy[i][j] <= 0;
                             end
                         end
+
+                        // 修改射擊部隊子彈生成的邏輯
+                        /*if (!shooter_bullet_active[i][j]) begin
+                            // 计算子弹到玩家的相对位置向量
+                            dx = $signed(player_x) - $signed(shooter_x[i]);
+                            dy = $signed(player_y) - $signed(shooter_y[i]);
+
+                            // 根据方向设置子弹初始位置
+                            if (dx >= 0) begin
+                                shooter_bullet_x[i][j] <= shooter_x[i] + 10; // 射击部队在玩家左侧
+                            end else begin
+                                shooter_bullet_x[i][j] <= shooter_x[i] - 10; // 射击部队在玩家右侧
+                            end
+
+                            if (dy >= 0) begin
+                                shooter_bullet_y[i][j] <= shooter_y[i] + 10; // 射击部队在玩家上方
+                            end else begin
+                                shooter_bullet_y[i][j] <= shooter_y[i] - 10; // 射击部队在玩家下方
+                            end
+
+                            // 激活子弹
+                            shooter_bullet_active[i][j] <= 1;
+
+                            // 保持方向性的速度计算
+                            shooter_bullet_dx[i][j] <= (dx >>> 6); // 使用右移控制速度
+                            shooter_bullet_dy[i][j] <= (dy >>> 6); // 保持方向比例
+                        end*/
+
                     end
                 end
             end else begin
@@ -882,7 +945,8 @@ always @(posedge shooter_bullet_clk or posedge rst) begin
                         shooter_bullet_y[i][j] + 5 >= player_y && 
                         shooter_bullet_y[i][j] < player_y + 20) begin
                         shooter_bullet_active[i][j] <= 0;
-                        health <= health - 2;
+                        bullet_hit_player[i][j] <= 1;  // 設置碰撞標記
+                        //health <= health - 2;
                     end
                     // 檢查是否離開螢幕
                     else if (shooter_bullet_x[i][j] < 5 || shooter_bullet_x[i][j] > 635 ||
