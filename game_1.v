@@ -704,7 +704,7 @@ always @(posedge enemy_move_clk or posedge rst) begin
             enemy_dx[i] <= 0;
         end
         enemy_hit_player <= 0;
-    end else begin
+    end else if (current_state == GAME_RUNNING) begin
         enemy_hit_player <= 0;  // 重置碰撞標記
         // 第一部分：處理現有敵人的移動
         for (i = 0; i < MAX_ENEMIES; i = i + 1) begin
@@ -753,7 +753,7 @@ always @(posedge shooter_move_clk or posedge rst) begin
             shooter_y[i] <= 0;
             shooter_dx[i] <= 0;
         end
-    end else begin
+    end else if (current_state == GAME_RUNNING) begin
         for (i = 0; i < MAX_SHOOTERS; i = i + 1) begin
             if (bullet_hit_shooter[i]) begin
                 shooter_active[i] <= 0;  // 被子彈擊中
@@ -818,7 +818,7 @@ always @(posedge shooter_bullet_clk or posedge rst) begin
                 shooter_bullet_dy[i][j] <= 0;
             end
         end
-    end else begin
+    end else if (current_state == GAME_RUNNING) begin
         // 每個活躍的射擊部隊都嘗試發射子彈
         for (i = 0; i < MAX_SHOOTERS; i = i + 1) begin
             if (shooter_active[i]) begin
@@ -1279,15 +1279,4 @@ always @(*) begin
     end
 end
 
-endmodule
-
-module mem_addr_gen(
-    input clk,
-    input rst,
-    input [9:0] h_cnt,
-    input [9:0] v_cnt,
-    output [16:0] pixel_addr
-);
-    // 單純生成像素地址，對應 320x240 的縮小版圖像
-    assign pixel_addr = ((h_cnt >> 1) + 320 * (v_cnt >> 1)) % 76800; // 640x480 -> 320x240
 endmodule

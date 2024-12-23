@@ -4,21 +4,13 @@ module background_music(
     input wire [1:0] mode,   // 音樂模式: 00=一般, 01=勝利, 10=輸掉
     output reg [21:0] note_div // 音符分頻值
 );
-    reg [4:0] note_index;    // 音符索引
-    reg [23:0] counter;      // 音符播放計數器
-    parameter DURATION = 24'd5000000; // 每個音符的播放時間
-
+ 
+    reg [4:0] note_index;    // 音階索引
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            note_index <= 5'b00000;
-            counter <= 24'd0;
+            note_index <= 3'b00000; // 從第一顆音開始
         end else begin
-            if (counter < DURATION) begin
-                counter <= counter + 1;
-            end else begin
-                counter <= 24'd0;
-                note_index <= (note_index == 5'd31) ? 5'b00000 : note_index + 1'b1;
-            end
+            note_index <= (note_index == 5'd31) ? 5'b00000 : note_index + 1'b1; // 循環播放
         end
     end
 
