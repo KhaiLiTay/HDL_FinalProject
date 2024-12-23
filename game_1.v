@@ -7,6 +7,7 @@ module game_top(
     inout wire PS2_CLK,
 	input wire BtnU,
     input wire BtnD,
+    input wire BtnL,
     output reg [15:0] LED,
     output wire MOSI,
     output wire SCLK,
@@ -506,6 +507,7 @@ always @(*) begin
         
         MENU_TUTORIAL: begin
             if (joystick_button[1]) next_state = MENU_IDLE; // 回到選單
+            else if (BtnL) next_state = MENU_IDLE;         // 按下 BtnL 回到選單
             else next_state = MENU_TUTORIAL;
         end
 
@@ -568,6 +570,8 @@ always @(posedge clk or posedge rst) begin
     end else if (current_state == MENU_IDLE) begin
         if (BtnU && menu_selected > 0) menu_selected <= menu_selected - 1;
         else if (BtnD && menu_selected < 1) menu_selected <= menu_selected + 1;
+    end else if (current_state == MENU_TUTORIAL && BtnL) begin
+        menu_selected <= 1; // 按下 BtnL 時將選項設為 1
     end
 end
 
