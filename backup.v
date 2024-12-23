@@ -146,8 +146,12 @@ parameter [8:0] KEY_D = 9'b0_0010_0011; // D
 parameter [8:0] LEFT_SHIFT_CODES  = 9'b0_0001_0010;
 parameter [8:0] RIGHT_SHIFT_CODES = 9'b0_0101_1001;
 
-wire shift_down = key_down[LEFT_SHIFT_CODES] | key_down[RIGHT_SHIFT_CODES];
+parameter [8:0] LEFT_CTRL_CODES   = 9'b0_0001_0100;
+//parameter [15:0] RIGHT_CTRL_CODES  = 16'b1110_0000_0001_0100;
 
+
+wire shift_down = key_down[LEFT_SHIFT_CODES] | key_down[RIGHT_SHIFT_CODES];
+wire ctrl_down = key_down[LEFT_CTRL_CODES];
 //============================================================
 // VGA 控制器
 //============================================================
@@ -317,8 +321,28 @@ parameter MAX_BULLET_SPEED = 5;
 reg signed [31:0] normalized_dx, normalized_dy;
 reg [31:0] sqrt_mag;
 
-integer i;
+integer i,j;
 reg [9:0] LFSR;
+
+// 六角衝擊波參數
+parameter MAX_SPLIT_BULLETS = 6;  // 分裂後的子彈數量
+parameter SPLIT_BULLET_SIZE = 3;  // 分裂子彈大小
+parameter SPLIT_BULLET_SPEED = 3; // 分裂子彈速度
+
+// 六角衝擊波變數
+reg signed[9:0] split_bullet_x[MAX_SPLIT_BULLETS-1:0];
+reg signed[9:0] split_bullet_y[MAX_SPLIT_BULLETS-1:0];
+reg signed [9:0] split_bullet_dx[MAX_SPLIT_BULLETS-1:0];
+reg signed [9:0] split_bullet_dy[MAX_SPLIT_BULLETS-1:0];
+reg split_bullet_active[MAX_SPLIT_BULLETS-1:0];
+reg is_split_weapon;
+
+parameter MAX_PURPLE_ENEMIES = 5;  // 紫色敌人的最大数量
+reg signed [10:0] purple_enemy_x[MAX_PURPLE_ENEMIES - 1:0];
+reg [9:0] purple_enemy_y[MAX_PURPLE_ENEMIES - 1:0];
+reg signed [4:0] purple_enemy_dy[MAX_PURPLE_ENEMIES - 1:0]; // 垂直速度
+reg purple_enemy_active[MAX_PURPLE_ENEMIES - 1:0];
+reg [MAX_PURPLE_ENEMIES-1:0] purple_enemy_hit_player; // 紫色敌人撞击玩家标记
 
 // 初始值
 initial begin
@@ -344,6 +368,21 @@ initial begin
     bullet_sound_trigger = 0;
     health = 50;  // 設置初始生命值為50
     enemy_hit_player = 0;
+    is_split_weapon = 0;
+    for (i = 0; i < MAX_SPLIT_BULLETS; i = i + 1) begin
+        split_bullet_active[i] = 0;
+        split_bullet_x[i] = 0;
+        split_bullet_y[i] = 0;
+        split_bullet_dx[i] = 0;
+        split_bullet_dy[i] = 0;
+    end
+    for (i = 0; i < MAX_PURPLE_ENEMIES; i = i + 1) begin
+        purple_enemy_x[i] = 0;
+        purple_enemy_y[i] = 0;
+        purple_enemy_dy[i] = 0;  // 初始化为静止
+        purple_enemy_active[i] = 0;
+    end
+
 end
 
 //============================================================
@@ -438,8 +477,49 @@ always @(posedge clk_bullet or posedge rst) begin
             bullet_hit_enemy <= 0;
             bullet_hit_shooter <= 0;
         end
+        for (i = 0; i < MAX_SPLIT_BULLETS; i = i + 1) begin
+                if (split_bullet_active[i]) begin
+                    // 更新分裂子彈位置
+                    split_bullet_x[i] <= split_bullet_x[i] + split_bullet_dx[i];
+                    split_bullet_y[i] <= split_bullet_y[i] + split_bullet_dy[i];
+                    
+                    // 檢查是否超出螢幕範圍
+                    if (split_bullet_x[i] < 5 || split_bullet_x[i] > 635 ||
+                        split_bullet_y[i] < 5 || split_bullet_y[i] > 475) begin
+                        split_bullet_active[i] <= 0;
+                    end
+
+                    // 檢查分裂子彈是否擊中敵人
+                    for (j = 0; j < MAX_ENEMIES; j = j + 1) begin
+                        if (enemy_active[j] &&
+                            split_bullet_x[i] + SPLIT_BULLET_SIZE >= enemy_x[j] && 
+                            split_bullet_x[i] < enemy_x[j] + 20 &&
+                            split_bullet_y[i] + SPLIT_BULLET_SIZE >= enemy_y[j] && 
+                            split_bullet_y[i] < enemy_y[j] + 20) begin
+                            bullet_hit_enemy[j] <= 1;
+                            split_bullet_active[i] <= 0;
+                            if (score < 8'd99) score <= score + 1;
+                        end
+                    end
+                    
+                    // 檢查分裂子彈是否擊中射擊部隊
+                    for (j = 0; j < MAX_SHOOTERS; j = j + 1) begin
+                        if (shooter_active[j] &&
+                            split_bullet_x[i] + SPLIT_BULLET_SIZE >= shooter_x[j] && 
+                            split_bullet_x[i] < shooter_x[j] + 20 &&
+                            split_bullet_y[i] + SPLIT_BULLET_SIZE >= shooter_y[j] && 
+                            split_bullet_y[i] < shooter_y[j] + 20) begin
+                            bullet_hit_shooter[j] <= 1;
+                            split_bullet_active[i] <= 0;
+                            if (score < 8'd99) score <= score + 2;
+                        end
+                    end
+                end
+            end
+            
         // 按下搖桿按鈕(不在shift模式)來發射子彈
         if (joystick_button[0] && !bullet_active && !shift_down) begin
+            is_split_weapon = SW[1];
             dx = $signed(joystick_x_final) - $signed(CENTER_X);
             dy = $signed(joystick_y_final) - $signed(CENTER_Y);
 
@@ -478,6 +558,43 @@ always @(posedge clk_bullet or posedge rst) begin
                     bullet_active <= 0;
                     bullet_hit <= 1;
                     if (score < 8'd99) score <= score + 1;
+
+                    // 分裂武器擊中敵人時生成六角形分裂子彈
+                    if (is_split_weapon) begin
+                        for (j = 0; j < MAX_SPLIT_BULLETS; j = j + 1) begin
+                            split_bullet_active[j] <= 1;
+                            split_bullet_x[j] <= bullet_x;
+                            split_bullet_y[j] <= bullet_y;
+                            
+                            // 設定六個方向的速度向量
+                            case(j)
+                                0: begin // 右
+                                    split_bullet_dx[j] <= SPLIT_BULLET_SPEED;
+                                    split_bullet_dy[j] <= 0;
+                                end
+                                1: begin // 右上
+                                    split_bullet_dx[j] <= SPLIT_BULLET_SPEED;
+                                    split_bullet_dy[j] <= -SPLIT_BULLET_SPEED;
+                                end
+                                2: begin // 左上
+                                    split_bullet_dx[j] <= -SPLIT_BULLET_SPEED;
+                                    split_bullet_dy[j] <= -SPLIT_BULLET_SPEED;
+                                end
+                                3: begin // 左
+                                    split_bullet_dx[j] <= -SPLIT_BULLET_SPEED;
+                                    split_bullet_dy[j] <= 0;
+                                end
+                                4: begin // 左下
+                                    split_bullet_dx[j] <= -SPLIT_BULLET_SPEED;
+                                    split_bullet_dy[j] <= SPLIT_BULLET_SPEED;
+                                end
+                                5: begin // 右下
+                                    split_bullet_dx[j] <= SPLIT_BULLET_SPEED;
+                                    split_bullet_dy[j] <= SPLIT_BULLET_SPEED;
+                                end
+                            endcase
+                        end
+                    end
                 end
             end
 
@@ -490,6 +607,42 @@ always @(posedge clk_bullet or posedge rst) begin
                     bullet_active <= 0;
                     bullet_hit <= 1;
                     if (score < 8'd99) score <= score + 2;  // 可以給更多分數
+                    // 分裂武器擊中敵人時生成六角形分裂子彈
+                    if (is_split_weapon) begin
+                        for (j = 0; j < MAX_SPLIT_BULLETS; j = j + 1) begin
+                            split_bullet_active[j] <= 1;
+                            split_bullet_x[j] <= bullet_x;
+                            split_bullet_y[j] <= bullet_y;
+                            
+                            // 設定六個方向的速度向量
+                            case(j)
+                                0: begin // 右
+                                    split_bullet_dx[j] <= SPLIT_BULLET_SPEED;
+                                    split_bullet_dy[j] <= 0;
+                                end
+                                1: begin // 右上
+                                    split_bullet_dx[j] <= SPLIT_BULLET_SPEED;
+                                    split_bullet_dy[j] <= -SPLIT_BULLET_SPEED;
+                                end
+                                2: begin // 左上
+                                    split_bullet_dx[j] <= -SPLIT_BULLET_SPEED;
+                                    split_bullet_dy[j] <= -SPLIT_BULLET_SPEED;
+                                end
+                                3: begin // 左
+                                    split_bullet_dx[j] <= -SPLIT_BULLET_SPEED;
+                                    split_bullet_dy[j] <= 0;
+                                end
+                                4: begin // 左下
+                                    split_bullet_dx[j] <= -SPLIT_BULLET_SPEED;
+                                    split_bullet_dy[j] <= SPLIT_BULLET_SPEED;
+                                end
+                                5: begin // 右下
+                                    split_bullet_dx[j] <= SPLIT_BULLET_SPEED;
+                                    split_bullet_dy[j] <= SPLIT_BULLET_SPEED;
+                                end
+                            endcase
+                        end
+                    end
                 end
             end
         end else begin
@@ -529,11 +682,11 @@ always @(posedge enemy_move_clk or posedge rst) begin
                     enemy_y[i] + 20 >= player_y && enemy_y[i] < player_y + 20) begin
                     enemy_hit_player[i] <= 1;  // 標記撞到玩家
                     enemy_active[i] <= 0;      // 敵人消失
-                    if (health >= 8'd5) begin     // 確保生命值不會變成負數
+                    /*if (health >= 8'd5) begin     // 確保生命值不會變成負數
                         health <= health - 8'd5;
                     end else begin
                         health <= 0;
-                    end
+                    end*/
                 end
                 else begin
                     enemy_x[i] <= enemy_x[i] + enemy_dx[i];
@@ -560,6 +713,50 @@ always @(posedge enemy_move_clk or posedge rst) begin
     end
 end
 
+always @(posedge enemy_move_clk or posedge rst) begin
+    if (rst) begin
+        for (i = 0; i < MAX_PURPLE_ENEMIES; i = i + 1) begin
+            purple_enemy_active[i] <= 0;
+            purple_enemy_x[i] <= 0;
+            purple_enemy_y[i] <= 0;
+            purple_enemy_dy[i] <= 0;
+        end
+        purple_enemy_hit_player <= 0;
+    end else begin
+        purple_enemy_hit_player <= 0; // 重置撞击标记
+
+        // 更新现有紫色敌人的位置
+        for (i = 0; i < MAX_PURPLE_ENEMIES; i = i + 1) begin
+            if (purple_enemy_active[i]) begin
+                // 检查是否撞击玩家
+                if (purple_enemy_x[i] + 20 >= player_x && purple_enemy_x[i] < player_x + 20 &&
+                    purple_enemy_y[i] + 20 >= player_y && purple_enemy_y[i] < player_y + 20) begin
+                    purple_enemy_hit_player[i] <= 1;
+                    purple_enemy_active[i] <= 0; // 撞击后消失
+                end else begin
+                    // 更新垂直位置
+                    purple_enemy_y[i] <= purple_enemy_y[i] + purple_enemy_dy[i];
+                    
+                    // 检查是否离开屏幕
+                    if ((purple_enemy_dy[i] > 0 && purple_enemy_y[i] > 480) ||
+                        (purple_enemy_dy[i] < 0 && purple_enemy_y[i] < -20)) begin
+                        purple_enemy_active[i] <= 0;
+                    end
+                end
+            end else begin
+                // 生成新的紫色敌人
+                if (!purple_enemy_active[i] && LFSR[1]) begin
+                    purple_enemy_x[i] <= (LFSR % 640); // 随机水平位置
+                    purple_enemy_y[i] <= (LFSR[0] ? 0 : 460); // 从顶部或底部进入
+                    purple_enemy_dy[i] <= (purple_enemy_y[i] == 0) ? 2 : -2; // 决定向上或向下移动
+                    purple_enemy_active[i] <= 1;
+                end
+            end
+        end
+    end
+end
+
+
 // 射擊部隊的生成與移動邏輯
 always @(posedge shooter_move_clk or posedge rst) begin
     if (rst) begin
@@ -585,7 +782,7 @@ always @(posedge shooter_move_clk or posedge rst) begin
                 end
             end 
             else begin  // 生成新的射擊部隊
-                if (!shooter_active[i] && LFSR[2:0] == 3'b111) begin  // 降低生成機率
+                if (!shooter_active[i] && LFSR[0]) begin  // 降低生成機率
                     if (LFSR[0]) begin
                         shooter_x[i] <= -20;
                         shooter_dx[i] <= ENEMY_SPEED;
@@ -601,6 +798,103 @@ always @(posedge shooter_move_clk or posedge rst) begin
     end
 end
 
+// 在參數區域添加
+parameter MAX_SHOOTER_BULLETS = 10;  // 每個射擊部隊最多可以有的子彈數
+parameter SHOOTER_BULLET_SPEED = 3;  // 子彈速度
+
+// 在遊戲參數區域添加
+reg [9:0] shooter_bullet_x[MAX_SHOOTERS * MAX_SHOOTER_BULLETS - 1:0];
+reg [9:0] shooter_bullet_y[MAX_SHOOTERS * MAX_SHOOTER_BULLETS - 1:0];
+reg shooter_bullet_active[MAX_SHOOTERS * MAX_SHOOTER_BULLETS - 1:0];
+reg signed [4:0] shooter_bullet_dy[MAX_SHOOTERS * MAX_SHOOTER_BULLETS - 1:0];
+
+// 添加射擊計時器
+reg [31:0] shooter_fire_counter[MAX_SHOOTERS - 1:0];
+parameter SHOOTER_FIRE_DELAY = 100;  // 調整射擊頻率
+
+// 在initial begin中添加初始化
+integer k;
+initial begin
+    for (k = 0; k < MAX_SHOOTERS * MAX_SHOOTER_BULLETS; k = k + 1) begin
+        shooter_bullet_x[k] = 0;
+        shooter_bullet_y[k] = 0;
+        shooter_bullet_active[k] = 0;
+        shooter_bullet_dy[k] = 0;
+    end
+    for (k = 0; k < MAX_SHOOTERS; k = k + 1) begin
+        shooter_fire_counter[k] = 0;
+    end
+end
+
+// 添加射擊部隊子彈移動和生成邏輯
+always @(posedge shooter_move_clk or posedge rst) begin
+    if (rst) begin
+        for (i = 0; i < MAX_SHOOTERS * MAX_SHOOTER_BULLETS; i = i + 1) begin
+            shooter_bullet_active[i] = 0;
+        end
+        for (i = 0; i < MAX_SHOOTERS; i = i + 1) begin
+            shooter_fire_counter[i] = 0;
+        end
+    end else begin
+        // 更新現有子彈位置
+        for (i = 0; i < MAX_SHOOTERS * MAX_SHOOTER_BULLETS; i = i + 1) begin
+            if (shooter_bullet_active[i]) begin
+                shooter_bullet_y[i] = shooter_bullet_y[i] + shooter_bullet_dy[i];
+                
+                // 檢查子彈是否離開螢幕
+                if (shooter_bullet_y[i] >= 480 || shooter_bullet_y[i] <= 0) begin
+                    shooter_bullet_active[i] = 0;
+                end
+                
+                // 檢查是否擊中玩家
+                if (shooter_bullet_x[i] + 5 >= player_x && 
+                    shooter_bullet_x[i] < player_x + 20 &&
+                    shooter_bullet_y[i] + 5 >= player_y && 
+                    shooter_bullet_y[i] < player_y + 20) begin
+                    shooter_bullet_active[i] = 0;
+                    if (health >= 8'd3) begin
+                        health <= health - 8'd3;
+                    end else begin
+                        health <= 0;
+                    end
+                end
+            end
+        end
+
+        // 射擊部隊發射新子彈
+        for (i = 0; i < MAX_SHOOTERS; i = i + 1) begin
+            if (shooter_active[i]) begin
+                shooter_fire_counter[i] = shooter_fire_counter[i] + 1;
+                
+                if (shooter_fire_counter[i] >= SHOOTER_FIRE_DELAY) begin
+                    shooter_fire_counter[i] = 0;
+                    
+                    // 找一個未使用的子彈槽
+                    for (k = i * MAX_SHOOTER_BULLETS; 
+                         k < (i + 1) * MAX_SHOOTER_BULLETS; 
+                         k = k + 1) begin
+                        if (!shooter_bullet_active[k]) begin
+                            shooter_bullet_x[k] = shooter_x[i] + 10;  // 從射擊部隊中心發射
+                            shooter_bullet_y[k] = shooter_y[i];
+                            shooter_bullet_active[k] = 1;
+                            
+                            // 根據射擊部隊位置決定子彈方向
+                            if (shooter_y[i] <= 20) begin  // 頂部射擊部隊
+                                shooter_bullet_dy[k] = SHOOTER_BULLET_SPEED;  // 向下射擊
+                            end else begin  // 底部射擊部隊
+                                shooter_bullet_dy[k] = -SHOOTER_BULLET_SPEED;  // 向上射擊
+                            end
+                            
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+
 //=====================
 //For Testing
 //assign LED[5] = enemy_active[0];
@@ -612,18 +906,6 @@ end
 // SW[0] = 1, SW[1] = 1 顯示 x_bcd
 // SW[0] = 1, SW[1] = 0 顯示 y_bcd
 //============================================================
-//wire [15:0] score_bcd = {4'hF,4'hF,score[7:4],score[3:0]};
-/*wire [15:0] bcd = {health[7:4],health[3:0],score[7:4],score[3:0]};
-wire [15:0] nums_to_display = (SW[0] == 1'b0) ? bcd :
-                              (SW[1] == 1'b1) ? x_bcd : y_bcd;
-
-SevenSegment m1(
-    .display(display), 
-    .digit(digit), 
-    .nums(nums_to_display),
-    .rst(rst), 
-    .clk(clk)
-);*/
 
 // 將health和score組合成一個16位的nums
 wire [15:0] game_status;
@@ -669,7 +951,7 @@ SevenSegment m1(
 //============================================================
 // VGA 輸出
 //============================================================
-integer j;
+integer e;
 always @(*) begin
     vgaRed = 4'h0;
     vgaGreen = 4'h0;
@@ -703,6 +985,38 @@ always @(*) begin
                     vgaBlue = 4'h0;
                 end
             end
+            // 在VGA輸出部分添加射擊部隊子彈的顯示
+            // 在VGA輸出的always區塊中添加：
+            // 射擊部隊子彈
+            for (j = 0; j < MAX_SHOOTERS * MAX_SHOOTER_BULLETS; j = j + 1) begin
+                if (shooter_bullet_active[j] && 
+                    v_cnt >= shooter_bullet_y[j] && v_cnt < shooter_bullet_y[j] + 5 && 
+                    h_cnt >= shooter_bullet_x[j] && h_cnt < shooter_bullet_x[j] + 5) begin
+                    vgaRed = 4'hF;
+                    vgaGreen = 4'h8;
+                    vgaBlue = 4'h0;
+                end
+            end
+            // 檢查所有分裂子彈
+            for (e = 0; e < MAX_SPLIT_BULLETS; e = e + 1) begin
+                if (split_bullet_active[e] &&
+                    v_cnt >= split_bullet_y[e] && v_cnt < split_bullet_y[e] + SPLIT_BULLET_SIZE &&
+                    h_cnt >= split_bullet_x[e] && h_cnt < split_bullet_x[e] + SPLIT_BULLET_SIZE)
+                begin
+                    // 分裂子彈顯示為青色
+                    vgaGreen = 4'hF;
+                    vgaBlue = 4'hF;
+                end
+            end
+            for (e = 0; e < MAX_PURPLE_ENEMIES; e = e + 1) begin
+                if (purple_enemy_active[e] &&
+                    (v_cnt >= purple_enemy_y[e]) && (v_cnt < purple_enemy_y[e] + 20) &&
+                    (h_cnt >= purple_enemy_x[e]) && (h_cnt < purple_enemy_x[e] + 20)) begin
+                    vgaRed = 4'hF;  // 红色分量
+                    vgaBlue = 4'hF; // 蓝色分量
+                end
+            end
+
             // 先顯示敵人（最底層）
             /*for (j = 0; j < MAX_ENEMIES; j = j + 1) begin
                 if (enemy_active[j]) begin  // 先確認敵人是否真的激活
