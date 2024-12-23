@@ -344,6 +344,18 @@ reg signed [4:0] purple_enemy_dy[MAX_PURPLE_ENEMIES - 1:0]; // 垂直速度
 reg purple_enemy_active[MAX_PURPLE_ENEMIES - 1:0];
 reg [MAX_PURPLE_ENEMIES-1:0] purple_enemy_hit_player; // 紫色敌人撞击玩家标记
 
+// Add these parameters near other weapon parameters
+parameter BOUNCE_GUN_SIZE = 8;    // Bouncing bullet size
+parameter BOUNCE_SPEED = 4;       // Bounce movement speed
+
+// Add these registers to track bounce state
+reg is_bounce_weapon;             // Bounce weapon state
+reg bounce_hit_count;             // Track number of hits
+reg bounce_hit_wall;             // Track wall collision
+// 增加參數和暫存器
+reg [2:0] bounce_count;  // 計算彈跳次數，最多3次
+
+
 // 初始值
 initial begin
     player_x = 320;
@@ -382,7 +394,10 @@ initial begin
         purple_enemy_dy[i] = 0;  // 初始化为静止
         purple_enemy_active[i] = 0;
     end
-
+    is_bounce_weapon = 0;
+    bounce_hit_count = 0;
+    bounce_hit_wall = 0;
+    bounce_count = 0;
 end
 
 //============================================================
@@ -520,6 +535,8 @@ always @(posedge clk_bullet or posedge rst) begin
         // 按下搖桿按鈕(不在shift模式)來發射子彈
         if (joystick_button[0] && !bullet_active && !shift_down) begin
             is_split_weapon = SW[1];
+            is_bounce_weapon = ctrl_down && !SW[1];
+            bounce_hit_count <= 0;
             dx = $signed(joystick_x_final) - $signed(CENTER_X);
             dy = $signed(joystick_y_final) - $signed(CENTER_Y);
 
@@ -541,11 +558,33 @@ always @(posedge clk_bullet or posedge rst) begin
             end
         end else if (bullet_active) begin
             bullet_sound_trigger <= 0; // 發射後關閉音效觸發
-            if (bullet_x >= 5 && bullet_x <= 635 && bullet_y >= 5 && bullet_y <= 475) begin
-                bullet_x <= bullet_x + bullet_dx;
-                bullet_y <= bullet_y + bullet_dy;
+
+            // 在bullet active區塊中的彈跳邏輯部分修改為：
+            if (is_bounce_weapon) begin
+                // 檢查是否碰到邊界並進行彈跳
+                // 在發射子彈時
+                if (is_bounce_weapon) begin
+                    bullet_dx <= (dx > 0) ? BOUNCE_SPEED : -BOUNCE_SPEED;
+                    bullet_dy <= (dy > 0) ? BOUNCE_SPEED : -BOUNCE_SPEED;
+                end
+                
+                // 檢查彈跳次數
+                if (bounce_count >= 3) begin
+                    bullet_active <= 0;  // 第三次彈跳後消失
+                    bounce_count <= 0;
+                end else begin
+                    // 更新位置
+                    bullet_x <= bullet_x + bullet_dx;
+                    bullet_y <= bullet_y + bullet_dy;
+                end
             end else begin
-                bullet_active <= 0;
+                // 原有的非彈跳子彈邏輯
+                if (bullet_x >= 5 && bullet_x <= 635 && bullet_y >= 5 && bullet_y <= 475) begin
+                    bullet_x <= bullet_x + bullet_dx;
+                    bullet_y <= bullet_y + bullet_dy;
+                end else begin
+                    bullet_active <= 0;
+                end
             end
 
             // 檢測子彈撞擊敵人
@@ -558,6 +597,22 @@ always @(posedge clk_bullet or posedge rst) begin
                     bullet_active <= 0;
                     bullet_hit <= 1;
                     if (score < 8'd99) score <= score + 1;
+
+                    if (is_bounce_weapon) begin
+                        if (bounce_hit_count == 0) begin
+                            bounce_hit_count <= 1;
+                            bullet_hit_enemy[i] <= 1;
+                            if (score < 8'd99) score <= score + 1;
+                        end else begin
+                            bullet_hit_enemy[i] <= 1;
+                            bullet_active <= 0;
+                            if (score < 8'd99) score <= score + 2;
+                        end
+                    end else begin
+                        bullet_hit_enemy[i] <= 1;
+                        bullet_active <= 0;
+                        if (score < 8'd99) score <= score + 1;
+                    end
 
                     // 分裂武器擊中敵人時生成六角形分裂子彈
                     if (is_split_weapon) begin
@@ -965,9 +1020,15 @@ always @(*) begin
         end 
         // 子彈
         else if (bullet_active && v_cnt >= bullet_y && v_cnt < bullet_y + 10 && h_cnt >= bullet_x && h_cnt < bullet_x + 5) begin
-            vgaRed = 4'h0;
-            vgaGreen = 4'hF; 
-            vgaBlue = 4'h0;
+            if (is_bounce_weapon) begin
+                vgaRed = 4'hF;    // Yellow color for bounce bullet
+                vgaGreen = 4'hF;
+                vgaBlue = 4'h0;
+            end
+            else begin vgaRed = 4'h0;
+                    vgaGreen = 4'hF; 
+                    vgaBlue = 4'h0;
+            end
         end 
         // 敵人
         else begin
