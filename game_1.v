@@ -7,6 +7,7 @@ module game_top(
     inout wire PS2_CLK,
 	input wire BtnU,
     input wire BtnD,
+    input wire BtnL,
     output reg [15:0] LED,
     output wire MOSI,
     output wire SCLK,
@@ -23,9 +24,6 @@ module game_top(
     output wire audio_sck,  // 串行時鐘
     output wire audio_sdin  // 串行音頻數據
 );
-
-
-
 
 //============================================================
 // Clock Dividers
@@ -611,6 +609,7 @@ always @(*) begin
         
         MENU_TUTORIAL: begin
             if (joystick_button[1]) next_state = MENU_IDLE; // 回到選單
+            else if (BtnL) next_state = MENU_IDLE;         // 按下 BtnL 回到選單
             else next_state = MENU_TUTORIAL;
         end
 
@@ -673,6 +672,8 @@ always @(posedge clk or posedge rst) begin
     end else if (current_state == MENU_IDLE) begin
         if (BtnU && menu_selected > 0) menu_selected <= menu_selected - 1;
         else if (BtnD && menu_selected < 1) menu_selected <= menu_selected + 1;
+    end else if (current_state == MENU_TUTORIAL && BtnL) begin
+        menu_selected <= 1; // 按下 BtnL 時將選項設為 1
     end
 end
 
@@ -1215,9 +1216,7 @@ end
 
 //============================================================
 // 七段顯示器 (Score)
-//============================================================
-wire [15:0] game_status;
-wire [15:0] nums_to_display = (current_state == GAME_WIN) ? 16'h0000 : game_status;
+//============================================================;
 
 // 當score改變時，我們需要更新最後兩位數字
 // 例如，score = 12 時，最後兩位要顯示12
@@ -1233,8 +1232,8 @@ always @(*) begin
     if (rst) begin
         health_tens <= 4'b0101;  // 初始值50的十位數
         health_ones <= 4'b0000;  // 初始值50的個位數
-        score_tens <= 4'b000;
-        score_ones <= 4'b000;
+        score_tens <= 4'b0000;
+        score_ones <= 4'b0000;
     end else begin
         health_tens <= health / 10;
         health_ones <= health % 10;
@@ -1242,16 +1241,33 @@ always @(*) begin
         score_ones <= score % 10;    // 取個位數
     end
 end
-// 修改生命值顯示計算
-/*always @(*) begin
-    health_tens = health / 10;  // 直接計算十位數
-    health_ones = health % 10;  // 直接計算個位數
-    score_tens = score / 10;    // 計算分數十位數
-    score_ones = score % 10;    // 計算分數個位數
-end*/
 
 // 最後組合成16位數字
-assign game_status = {health_tens, health_ones, score_tens, score_ones};
+reg [15:0] game_status;
+
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        game_status <= 16'h5000;  // 初始值
+    end else begin
+        game_status <= {health_tens, health_ones, score_tens, score_ones};
+    end
+end
+
+reg [15:0] nums_to_display;
+
+// 狀態切換時的顯示邏輯
+always @(*) begin
+    case (current_state)
+        MENU_IDLE: nums_to_display <= 16'hFFFF;       // ----
+        MENU_TUTORIAL: nums_to_display <= 16'hFFFF;   // ----
+        GAME_RUNNING: nums_to_display <= game_status; // 顯示 health 和 score
+        GAME_OVER: nums_to_display <= 16'hFFFF;       // ----
+        GAME_WIN: nums_to_display <= {4'hF, 4'hA, 4'hB, 4'hC}; // WIN
+        GAME_PAUSE: nums_to_display <= game_status;   // 顯示 health 和 score
+        GAME_LOSE: nums_to_display <= {4'hD, 4'h0, 4'h5, 4'hE}; // LOSE
+        default: nums_to_display <= 16'hFFFF;         // 預設為 ----
+    endcase
+end
 
 SevenSegment m1(
     .display(display), 
@@ -1422,6 +1438,5 @@ always @(*) begin
         endcase
     end
 end
-
 
 endmodule
