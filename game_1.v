@@ -362,7 +362,7 @@ reg [7:0] score;
 reg [7:0] health;  // 7-bit 可以表示 0-127，足夠表示 50
 // 新增中間信號來處理來自不同來源的生命值減少
 reg [7:0] enemy_damage;      // 敵人造成的傷害
-reg [7:0] shooter_damage;     // 子彈造成的傷害
+reg [7:0] bullet_damage;     // 子彈造成的傷害
 reg enemy_hit, bullet_hit_player;
 // 修改射擊部隊的射擊機制
 reg [7:0] shoot_timer [MAX_SHOOTERS-1:0];  // 每個射擊部隊的計時器
@@ -1006,203 +1006,115 @@ SevenSegment m1(
 );
 
 //============================================================
-// VGA 輸出
+// VGA Output Logic with Full RGB Pixel Data
 //============================================================
-integer e;
-wire start_pixel;
-wire tu_menu_pixel;
-wire tutorial_pixel;
-wire win_pixel;
-wire lose_pixel;
-wire pause_pixel;
 
-wire [16:0] menu_start_addr;
-wire [16:0] menu_tutorial_addr;
-wire [16:0] tutorial_screen_addr;
-wire [16:0] win_addr;
-wire [16:0] lose_addr;
-wire [16:0] pause_addr;
+integer e, p;
 
-//============================================================
-// 導入 mem_addr_gen 用於圖片地址生成
-//============================================================
-mem_addr_gen menu_start_gen (
-    .clk(clk_25),
-    .rst(rst),
-    .h_cnt(h_cnt),
-    .v_cnt(v_cnt),
-    .pixel_addr(menu_start_addr)
-);
+//================================================================
+// (1) Define Scaling Factors
+//================================================================
+localparam SCALE_FACTOR = 4;       // Scaling factor (x4)
+localparam IMG_W = 160;            // Original image width
+localparam IMG_H = 120;            // Original image height
+localparam SCALED_IMG_W = IMG_W * SCALE_FACTOR; // Scaled image width
+localparam SCALED_IMG_H = IMG_H * SCALE_FACTOR; // Scaled image height
 
-mem_addr_gen menu_tutorial_gen (
-    .clk(clk_25),
-    .rst(rst),
-    .h_cnt(h_cnt),
-    .v_cnt(v_cnt),
-    .pixel_addr(menu_tutorial_addr)
-);
+//================================================================
+// (2) BRAM Interface Signals
+//================================================================
+reg  [16:0] image_pixel_addr;     // Address for BRAM
+reg  [16:0] base_offset;          // Offset for each image
+wire [11:0] pixel;                // 12-bit RGB pixel data from BRAM
 
-mem_addr_gen tutorial_screen_gen (
-    .clk(clk_25),
-    .rst(rst),
-    .h_cnt(h_cnt),
-    .v_cnt(v_cnt),
-    .pixel_addr(tutorial_screen_addr)
-);
+//================================================================
+// (3) Define Image Offsets
+//================================================================
+localparam IMG1_OFFSET = 17'd0;       // Image 1
+localparam IMG2_OFFSET = 17'd19200;   // Image 2
+localparam IMG3_OFFSET = 17'd38400;   // Image 3
+localparam IMG4_OFFSET = 17'd57600;   // Image 4
+localparam IMG5_OFFSET = 17'd76800;   // Image 5
+localparam IMG6_OFFSET = 17'd96000;   // Image 6
 
-mem_addr_gen win_gen (
-    .clk(clk_25),
-    .rst(rst),
-    .h_cnt(h_cnt),
-    .v_cnt(v_cnt),
-    .pixel_addr(win_addr)
-);
-
-mem_addr_gen lose_gen (
-    .clk(clk_25),
-    .rst(rst),
-    .h_cnt(h_cnt),
-    .v_cnt(v_cnt),
-    .pixel_addr(lose_addr)
-);
-
-mem_addr_gen pause_gen (
-    .clk(clk_25),
-    .rst(rst),
-    .h_cnt(h_cnt),
-    .v_cnt(v_cnt),
-    .pixel_addr(pause_addr)
-);
-
-//============================================================
-// BRAM 讀取圖片資料
-//============================================================
-blk_mem_gen_0 menu_start (
+//================================================================
+// (4) Instantiate BRAM
+//================================================================
+blk_mem_gen_0 u_image_bram (
     .clka(clk_25),
     .wea(1'b0),
-    .addra((menu_start_addr < 76800) ? menu_start_addr : 17'd0),
-    .dina(0),
-    .douta(start_pixel)
+    .addra(image_pixel_addr),
+    .dina(12'b0), // Initialize with zeros
+    .douta(pixel) // 12-bit RGB output
 );
 
-blk_mem_gen_1 menu_tutorial (
-    .clka(clk_25),
-    .wea(1'b0),
-    .addra((menu_tutorial_addr < 76800) ? menu_tutorial_addr : 17'd0),
-    .dina(0),
-    .douta(tu_menu_pixel)
-);
-
-blk_mem_gen_2 tutorial_screen (
-    .clka(clk_25),
-    .wea(1'b0),
-    .addra((tutorial_screen_addr < 76800) ? tutorial_screen_addr : 17'd0),
-    .dina(0),
-    .douta(tutorial_pixel)
-);
-
-blk_mem_gen_3 win_image (
-    .clka(clk_25),
-    .wea(1'b0),
-    .addra((win_addr < 76800) ? win_addr : 17'd0),
-    .dina(0),
-    .douta(win_pixel)
-);
-
-blk_mem_gen_4 pause_image (
-    .clka(clk_25),
-    .wea(1'b0),
-    .addra((pause_addr < 76800) ? pause_addr : 17'd0),
-    .dina(0),
-    .douta(pause_pixel)
-);
-
-blk_mem_gen_5 lose_image (
-    .clka(clk_25),
-    .wea(1'b0),
-    .addra((lose_addr < 76800) ? lose_addr : 17'd0),
-    .dina(0),
-    .douta(lose_pixel)
-);
-
-//============================================================
-// VGA Rendering Logic
-//============================================================
+//================================================================
+// (5) Set Base Offset Based on State
+//================================================================
 always @(*) begin
-    // 先預設背景 = 黑
+    case (current_state)
+        MENU_IDLE: base_offset = (menu_selected == 0) ? IMG1_OFFSET : IMG2_OFFSET;
+        MENU_TUTORIAL: base_offset = IMG3_OFFSET;
+        GAME_RUNNING: base_offset = 17'd0; // No image
+        GAME_OVER: base_offset = 17'd0;    // No image
+        GAME_WIN: base_offset = IMG4_OFFSET;
+        GAME_PAUSE: base_offset = IMG5_OFFSET;
+        GAME_LOSE: base_offset = IMG6_OFFSET;
+        default: base_offset = 17'd0;
+    endcase
+end
+
+//================================================================
+// (6) Calculate BRAM Address for Pixel Data
+//================================================================
+always @(*) begin
+    if (valid && (h_cnt < SCALED_IMG_W) && (v_cnt < SCALED_IMG_H)) begin
+        // Calculate address based on scaled VGA coordinates
+        image_pixel_addr = base_offset + 
+                           ((v_cnt / SCALE_FACTOR) * IMG_W) + 
+                           (h_cnt / SCALE_FACTOR);
+    end else begin
+        // Default address for out-of-range pixels
+        image_pixel_addr = 17'd0;
+    end
+end
+
+//================================================================
+// (7) VGA Rendering Logic
+//================================================================
+always @(*) begin
+    // Default background = black
     vgaRed   = 4'h0;
     vgaGreen = 4'h0;
     vgaBlue  = 4'h0;
 
-    // 確保只在有效掃描區域(640×480)內進行繪圖
+    // Render within valid scan area
     if (valid && (h_cnt < 640) && (v_cnt < 480)) begin
         case (current_state)
-
-            //----------------------------------------
-            // 狀態 1: MENU_IDLE
-            //----------------------------------------
-            MENU_IDLE: begin
-                // 顯示不同圖片來對應選單 (Start / Tutorial)
-                // 此處只會顯示被選到的圖片 (menu_selected)
-                if (menu_selected == 0 && start_pixel == 1'b1) begin
-                    vgaRed   = 4'hF;
-                    vgaGreen = 4'hF;
-                    vgaBlue  = 4'hF;
-                end
-                else if (menu_selected == 1 && tu_menu_pixel == 1'b1) begin
-                    vgaRed   = 4'hF;
-                    vgaGreen = 4'hF;
-                    vgaBlue  = 4'hF;
-                end
+            MENU_IDLE, MENU_TUTORIAL, GAME_WIN, GAME_PAUSE, GAME_LOSE: begin
+                // Assign full RGB pixel data to VGA output
+                {vgaRed, vgaGreen, vgaBlue} = pixel;
             end
-
-            //----------------------------------------
-            // 狀態 2: MENU_TUTORIAL
-            //----------------------------------------
-            MENU_TUTORIAL: begin
-                // 顯示 Tutorial 大圖
-                if (tutorial_pixel == 1'b1) begin
-                    vgaRed   = 4'hF;
-                    vgaGreen = 4'hF;
-                    vgaBlue  = 4'hF;
-                end
-            end
-
-            //----------------------------------------
-            // 狀態 3: GAME_RUNNING
-            //----------------------------------------
             GAME_RUNNING: begin
-                // 先保留背景 = 黑
-                // 再依序判斷座標，畫 Player, Bullet, Enemies
-
-                // 1) Player
+                // Player
                 if ((v_cnt >= player_y) && (v_cnt < player_y + 20) &&
-                    (h_cnt >= player_x) && (h_cnt < player_x + 20))
-                begin
-                    // 顯示紅色方塊
-                    vgaRed = 4'hF; 
+                    (h_cnt >= player_x) && (h_cnt < player_x + 20)) begin
+                    vgaRed = 4'hF; // Red for player
                 end
-
-                // 2) Bullet
+                // Bullet
                 else if (bullet_active &&
                          (v_cnt >= bullet_y) && (v_cnt < bullet_y + 10) &&
-                         (h_cnt >= bullet_x) && (h_cnt < bullet_x + 5))
-                begin
-                    // 顯示綠色子彈
-                    vgaGreen = 4'hF;
+                         (h_cnt >= bullet_x) && (h_cnt < bullet_x + 5)) begin
+                    vgaGreen = 4'hF; // Green for bullet
                 end
-
-                // 3) Enemies
+                // Enemies
                 else begin
-                    // 預設先維持黑色
-                    // 檢查是否有射擊部隊的子彈在當前像素位置
                     for (e = 0; e < MAX_SHOOTERS; e = e + 1) begin
                         for (j = 0; j < MAX_SHOOTER_BULLETS; j = j + 1) begin
                             if (shooter_bullet_active[e][j] &&
                                 v_cnt >= shooter_bullet_y[e][j] && v_cnt < shooter_bullet_y[e][j] + 5 &&
                                 h_cnt >= shooter_bullet_x[e][j] && h_cnt < shooter_bullet_x[e][j] + 5) begin
-                                // 黃色子彈
-                                vgaRed = 4'hF;
+                                vgaRed = 4'hF; // Yellow bullet = Red + Green
                                 vgaGreen = 4'hF;
                                 vgaBlue = 4'h0;
                             end
@@ -1211,72 +1123,30 @@ always @(*) begin
                     for (e = 0; e < MAX_ENEMIES; e = e + 1) begin
                         if (enemy_active[e] &&
                             (v_cnt >= enemy_y[e]) && (v_cnt < enemy_y[e] + 20) &&
-                            (h_cnt >= enemy_x[e]) && (h_cnt < enemy_x[e] + 20))
-                        begin
-                            // 顯示藍色方塊
-                            vgaBlue = 4'hF;
+                            (h_cnt >= enemy_x[e]) && (h_cnt < enemy_x[e] + 20)) begin
+                            vgaBlue = 4'hF; // Blue for enemies
                         end
                     end
                     for (e = 0; e < MAX_SHOOTERS; e = e + 1) begin
                         if (shooter_active[e] &&
                             (v_cnt >= shooter_y[e]) && (v_cnt < shooter_y[e] + 20) &&
-                            (h_cnt >= shooter_x[e]) && (h_cnt < shooter_x[e] + 20))
-                        begin
-                            vgaRed = 4'hF;    // 橘色 = 紅色 + 綠色
+                            (h_cnt >= shooter_x[e]) && (h_cnt < shooter_x[e] + 20)) begin
+                            vgaRed = 4'hF;    // Orange = Red + Green
                             vgaGreen = 4'h8;
                         end
                     end
                 end
             end
-
-            //----------------------------------------
-            // 狀態 4: GAME_OVER
-            //----------------------------------------
             GAME_OVER: begin
-                // 簡單以藍色區塊示意 Game Over 畫面
                 if ((v_cnt >= 100) && (v_cnt < 200) &&
-                    (h_cnt >= 100) && (h_cnt < 500))
-                begin
-                    vgaBlue = 4'hF;
+                    (h_cnt >= 100) && (h_cnt < 500)) begin
+                    vgaBlue = 4'hF; // Blue block for Game Over
                 end
             end
-
-            //----------------------------------------
-            // 狀態 5: GAME_WIN
-            //----------------------------------------
-            GAME_WIN: begin
-                if (win_pixel == 1'b1) begin
-                    vgaRed   = 4'hF;
-                    vgaGreen = 4'hF;
-                    vgaBlue  = 4'hF;
-                end
-            end
-
-            //----------------------------------------
-            // 狀態 6: GAME_PAUSE
-            //----------------------------------------
-            GAME_PAUSE: begin
-                if (pause_pixel == 1'b1) begin
-                    vgaRed   = 4'hF;
-                    vgaGreen = 4'hF;
-                    vgaBlue  = 4'hF;
-                end
-            end
-            
-            //----------------------------------------
-            // 狀態 7: GAME_LOSE
-            //----------------------------------------
-            GAME_LOSE: begin
-                if (lose_pixel == 1'b1) begin
-                    vgaRed   = 4'hF;
-                    vgaGreen = 4'hF;
-                    vgaBlue  = 4'hF;
-                end
-            end
-
-            default: ; // 其他狀態預設黑
+            default: ; // Keep black for other states
         endcase
     end
 end
+
 
 endmodule
