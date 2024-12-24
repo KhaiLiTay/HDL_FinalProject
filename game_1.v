@@ -639,7 +639,7 @@ always @(*) begin
 
         GAME_PAUSE: begin // 新增的 PAUSE 狀態邏輯
             if (~SW[0]) begin // 關閉 SW[0]，回到之前的狀態
-                next_state = prev_state;
+                next_state = GAME_RUNNING;
             end else begin
                 next_state = GAME_PAUSE;
             end
@@ -846,7 +846,7 @@ always @(posedge clk_bullet or posedge rst) begin
                     // 分裂武器擊中敵人時生成六角形分裂子彈
                     if (is_split_weapon) begin
                         for (j = 0; j < MAX_SPLIT_BULLETS; j = j + 1) begin
-                            split_bullet_active[j] <= 2;
+                            split_bullet_active[j] <= 1;
                             split_bullet_x[j] <= bullet_x;
                             split_bullet_y[j] <= bullet_y;
                             
@@ -1061,7 +1061,7 @@ always @(posedge shooter_move_clk or posedge rst) begin
                 end
             end 
             else begin  // 生成新的射擊部隊
-                if (!shooter_active[i] && LFSR[0]) begin  // 降低生成機率
+                if (!shooter_active[i] && LFSR[2]) begin  // 降低生成機率
                     shooter_x[i] <= -20;
                     shooter_dx[i] <= ENEMY_SPEED;
                 end else begin
@@ -1260,7 +1260,7 @@ always @(*) begin
         MENU_IDLE: nums_to_display <= 16'hFFFF;       // ----
         MENU_TUTORIAL: nums_to_display <= 16'hFFFF;   // ----
         GAME_RUNNING: nums_to_display <= game_status; // 顯示 health 和 score
-        GAME_OVER: nums_to_display <= 16'hFFFF;       // ----
+        //GAME_OVER: nums_to_display <= 16'hFFFF;       // ----
         GAME_WIN: nums_to_display <= {4'hF, 4'hA, 4'hB, 4'hC}; // WIN
         GAME_PAUSE: nums_to_display <= game_status;   // 顯示 health 和 score
         GAME_LOSE: nums_to_display <= {4'hD, 4'h0, 4'h5, 4'hE}; // LOSE
@@ -1327,7 +1327,7 @@ always @(*) begin
         MENU_IDLE: base_offset = (menu_selected == 0) ? IMG1_OFFSET : IMG2_OFFSET;
         MENU_TUTORIAL: base_offset = IMG3_OFFSET;
         GAME_RUNNING: base_offset = 17'd0; // No image
-        GAME_OVER: base_offset = 17'd0;    // No image
+        //GAME_OVER: base_offset = 17'd0;    // No image
         GAME_WIN: base_offset = IMG4_OFFSET;
         GAME_PAUSE: base_offset = IMG5_OFFSET;
         GAME_LOSE: base_offset = IMG6_OFFSET;
@@ -1368,7 +1368,7 @@ always @(*) begin
             end
             GAME_RUNNING: begin
                 // Background gradient
-                if (h_cnt < 640 && v_cnt < 480) begin
+                if (h_cnt < 635 && v_cnt < 450) begin
                     vgaRed = 4'h0;  // No red in the background
                     vgaGreen = 4'h0;  // No green in the background
                     vgaBlue = (h_cnt[9:6] + v_cnt[9:6]);  // Gradual blue gradient
@@ -1433,12 +1433,12 @@ always @(*) begin
                     end
                 end
             end
-            GAME_OVER: begin
+            /*GAME_OVER: begin
                 if ((v_cnt >= 100) && (v_cnt < 200) &&
                     (h_cnt >= 100) && (h_cnt < 500)) begin
                     vgaBlue = 4'hF; // Blue block for Game Over
                 end
-            end
+            end*/
             default: ; // Keep black for other states
         endcase
     end
